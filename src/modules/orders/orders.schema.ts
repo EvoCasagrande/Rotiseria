@@ -46,7 +46,7 @@ const orderParamsSchema = z.object({
     id: z.string().min(1, "El id es obligatorio"),
 });
 
-export const getOrderSchema = z.object({
+export const getOrdersSchema = z.object({
     query: z.object({
         search: z
             .string()
@@ -54,7 +54,7 @@ export const getOrderSchema = z.object({
             .optional(),
 
         status: z
-            .enum(["PENDING", "CONFIRMED", "PREPARING", "READY", "DELIVERED", "CANCELLED"])
+            .enum(["PENDING", "CONFIRMED", "PREPARING", "READY", "COMPLETED", "CANCELLED"])
             .optional(),
         
         orderType: z.enum(["DELIVERY", "PICKUP"]).optional(),
@@ -77,12 +77,12 @@ export const updateOrderStatusSchema = z.object({
             "CONFIRMED",
             "PREPARING",
             "READY",
-            "DELIVERED",
+            "COMPLETED",
             "CANCELLED"
         ])
     })
 });
 
-export type OrderQueryInput = z.infer<typeof getOrderSchema>['query']
+export type OrderQueryInput = z.infer<typeof getOrdersSchema>['query']
 export type CreateOrderInput = z.infer<typeof createOrderSchema>['body']
 export type UpdateOrderStatusInput = z.infer<typeof updateOrderStatusSchema>['body']

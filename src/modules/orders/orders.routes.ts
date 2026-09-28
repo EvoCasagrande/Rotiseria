@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { OrdersService } from "./orders.service.js";
 import { OrdersController } from "./orders.controller.js";
-import { getOrderSchema, getByIdOrderSchema, createOrderSchema, updateOrderStatusSchema } from "./orders.schema.js";
+import { getOrdersSchema, getByIdOrderSchema, createOrderSchema, updateOrderStatusSchema } from "./orders.schema.js";
 import { validate } from "../../middlewares/validate.js";
 
 const ordersService = new OrdersService();
@@ -11,7 +11,7 @@ const router = Router()
 
 router
     .route('/')
-    .get(validate(getOrderSchema), ordersController.getAll)
+    .get(validate(getOrdersSchema), ordersController.getAll)
     .post(validate(createOrderSchema), ordersController.create);
 
 router
