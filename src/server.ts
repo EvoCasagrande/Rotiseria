@@ -25,7 +25,7 @@ const shutdown = () => {
             process.exitCode = 1
             console.error(err)
         } else {
-            console.log('El servidor se cerró correctamente')
+            console.log('El servidor se cerro correctamente')
         }
 
         try {

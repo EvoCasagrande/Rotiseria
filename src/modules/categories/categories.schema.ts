@@ -39,7 +39,7 @@ export const updateCategorySchema = z.object({
     body: categoryBodySchema
 });
 
-export const desactivateCategorySchema = z.object({
+export const deactivateCategorySchema = z.object({
     params: categoryParamsSchema,
 });
 

@@ -1,7 +1,8 @@
 import { Router } from "express";
 import { CategoriesController } from "./categories.controller.js";
 import { CategoriesService } from "./categories.service.js";
-import { createCategorySchema, deleteCategorySchema, getByIdCategorySchema, getCategoriesSchema, updateCategorySchema } from "./categories.schema.js";
+import { createCategorySchema, deactivateCategorySchema, getByIdCategorySchema, getCategoriesSchema, updateCategorySchema } from "./categories.schema.js";
+import { validate } from "../../middlewares/validate.js";
 
 const categoriesService = new CategoriesService();
 const categoriesController = new CategoriesController(categoriesService);
@@ -17,4 +18,6 @@ router
     .route('/:id')
     .get(validate(getByIdCategorySchema), categoriesController.getById)
     .patch(validate(updateCategorySchema), categoriesController.update)
-    .patch(validate(deleteCategorySchema), categoriesController.deactivate)
+    .delete(validate(deactivateCategorySchema), categoriesController.deactivate)
+
+export default router

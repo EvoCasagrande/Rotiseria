@@ -1,13 +1,20 @@
 import { Request, Response } from "express";
 import type { CategoriesService } from "./categories.service.js";
 import { AppError } from "../../utils/AppError.js";
-import type { CreateCategoryInput, UpdateCategoryInput } from "./categories.schema.js";
+import type { CategoriesQueryInput, CreateCategoryInput, UpdateCategoryInput } from "./categories.schema.js";
+
+type ValidatedLocals<T> = {
+    validated: T
+}
 
 export class CategoriesController {
     constructor(private readonly categoriesService: CategoriesService){}
 
-    getAll = async(req: Request, res: Response): Promise<void> => {
-        const categories = await this.categoriesService.getAll(req.query)
+    getAll = async(
+        _req: Request,
+        res: Response<unknown, ValidatedLocals<{ query: CategoriesQueryInput }>>,
+    ): Promise<void> => {
+        const categories = await this.categoriesService.getAll(res.locals.validated.query)
 
         res.status(200).json({
             status: 'success',
@@ -15,8 +22,12 @@ export class CategoriesController {
         })
     }
 
-    getById = async(req: Request<{ id: string }>, res: Response): Promise<void> => {
-        const category = await this.categoriesService.getById(req.params.id);
+    getById = async(_req: Request, res: Response<unknown, ValidatedLocals<{ params: { id: string } }>>,): Promise<void> => {
+        const category = await this.categoriesService.getById(res.locals.validated.params.id);
+
+        if(!category) {
+            throw new AppError('Categoria no encontrada', 404)
+        }
 
         res.status(200).json({
             status: 'success',
@@ -24,8 +35,11 @@ export class CategoriesController {
         })
     }
 
-    create = async(req: Request<{}, {}, CreateCategoryInput>, res: Response): Promise<void> => {
-        const category = await this.categoriesService.create(req.body)
+    create = async(
+        _req: Request,
+        res: Response<unknown, ValidatedLocals<{ body: CreateCategoryInput }>>,
+    ): Promise<void> => {
+        const category = await this.categoriesService.create(res.locals.validated.body)
 
         res.status(201).json({
             status: 'success',
@@ -33,8 +47,14 @@ export class CategoriesController {
         })
     }
 
-    update = async(req: Request<{ id: string }, {}, UpdateCategoryInput>, res: Response): Promise<void> => {
-        const category = await this.categoriesService.update(req.body, req.params.id)
+    update = async(
+        _req: Request,
+        res: Response<unknown, ValidatedLocals<{ params: { id: string }, body: UpdateCategoryInput }>>,
+    ): Promise<void> => {
+        const category = await this.categoriesService.update(
+            res.locals.validated.body,
+            res.locals.validated.params.id,
+        )
 
         res.status(200).json({
             status: 'success',
@@ -42,8 +62,11 @@ export class CategoriesController {
         })
     }
 
-    deactivate = async(req: Request<{ id: string }>, res: Response): Promise<void> => {
-        await this.categoriesService.deactivate(req.params.id)
+    deactivate = async(
+        _req: Request,
+        res: Response<unknown, ValidatedLocals<{ params: { id: string } }>>,
+    ): Promise<void> => {
+        await this.categoriesService.deactivate(res.locals.validated.params.id)
 
         res.status(204).send()
     } 
