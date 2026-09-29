@@ -525,3 +525,216 @@ Las decisiones técnicas deben favorecer:
 No diseñar el sistema como si fuera una plataforma de gran escala.
 
 Primero debe funcionar correctamente el circuito básico de pedidos.
+---
+
+# Estado real actualizado para Codex
+
+Esta seccion documenta el estado real del repo al 2026-09-29 para que otra sesion pueda continuar sin depender del historial de chat.
+
+## Backend implementado
+
+Stack real:
+
+- Node.js + TypeScript + Express.
+- Prisma 7 con cliente generado en `generated/prisma`.
+- PostgreSQL/Supabase via `@prisma/adapter-pg`.
+- Zod para validacion.
+- JWT + bcryptjs para autenticacion admin.
+
+Modulos actuales:
+
+- `src/modules/categories`
+- `src/modules/products`
+- `src/modules/orders`
+- `src/modules/auth`
+
+Middlewares:
+
+- `src/middlewares/validate.ts`: valida schemas Zod y guarda datos parseados en `res.locals.validated`.
+- `src/middlewares/errorHandler.ts`: handler centralizado para `AppError`, errores conocidos de Prisma y JSON invalido.
+- `src/middlewares/requireAuth.ts`: valida `Authorization: Bearer TOKEN`, busca admin activo y guarda un admin seguro en `res.locals.admin`.
+
+Auth:
+
+- `POST /api/auth/login` es publico.
+- `GET /api/auth/me` esta protegido con `requireAuth` y devuelve `res.locals.admin`.
+- El token se firma con `JWT_SECRET`.
+- El login nunca debe devolver `passwordHash`.
+
+Rutas publicas:
+
+- `GET /api/health`
+- `GET /api/categories`
+- `GET /api/categories/:id`
+- `GET /api/products`
+- `GET /api/products/:id`
+- `POST /api/orders`
+- `POST /api/auth/login`
+
+Rutas protegidas:
+
+- `GET /api/auth/me`
+- `POST /api/categories`
+- `PATCH /api/categories/:id`
+- `DELETE /api/categories/:id`
+- `POST /api/products`
+- `PATCH /api/products/:id`
+- `DELETE /api/products/:id`
+- `GET /api/orders`
+- `GET /api/orders/:id`
+- `PATCH /api/orders/:id/status`
+
+Orders:
+
+- `OrderItem.unitPrice` conserva el precio historico del producto.
+- El backend calcula `Order.total`; no confiar en totales/precios enviados por frontend.
+- `POST /api/orders` recibe items con `productId` y `quantity`.
+- `PATCH /api/orders/:id/status` solo cambia estado.
+- Estado final real actual: `COMPLETED` en Prisma/schema y Zod.
+
+Seed:
+
+- Existe `prisma/seed.ts`.
+- Crea/upsertea admin inicial:
+  - email: `admin@rotiseria.com`
+  - password dev: `Admin123`
+- Comando: `npx tsx prisma/seed.ts`.
+
+Tests/build:
+
+- `vitest` esta instalado.
+- Existe `tests/AppError.test.ts`.
+- `npm run test:run` puede requerir ejecucion fuera del sandbox porque Vitest crea workers.
+- `npm run build` genera Prisma client y compila backend.
+- `dist` esta ignorado en `.gitignore`.
+
+## Frontend implementado
+
+Existe frontend en `client/`.
+
+Stack real:
+
+- Vite + React + TypeScript.
+- Sin router ni librerias extra todavia.
+- `client/vite.config.ts` proxya `/api` a `http://localhost:3000`.
+
+Pantalla actual:
+
+- `client/src/App.tsx` tiene login admin.
+- Login pega a `POST /api/auth/login`.
+- Guarda JWT en `localStorage` con clave `rotiseria.jwt`.
+- Al cargar, intenta restaurar sesion con `GET /api/auth/me`.
+- Muestra admin logueado, permite validar sesion y cerrar sesion.
+
+Comandos frontend:
+
+- `cd client`
+- `npm run dev -- --host 127.0.0.1`
+- `npm run build`
+
+Servidores usados durante desarrollo:
+
+- Backend: `http://localhost:3000`
+- Frontend: `http://127.0.0.1:5173`
+
+## Siguiente objetivo frontend
+
+Agregar vista de pedidos al panel admin:
+
+- Tras login, listar `GET /api/orders` usando `Authorization: Bearer TOKEN`.
+- Mostrar cliente, telefono, tipo, estado, total, fecha e items.
+- Permitir cambiar estado con `PATCH /api/orders/:id/status`.
+- Mantenerlo simple, en `client/src/App.tsx` por ahora; no agregar router hasta que haya mas pantallas.
+
+## Actualizacion frontend 2026-09-29
+
+Vista de pedidos agregada en `client/src/App.tsx`:
+
+- Tras login o restauracion de sesion, carga `GET /api/orders` con `Authorization: Bearer TOKEN`.
+- Muestra pedidos con cliente, telefono, tipo, estado, total, fecha, direccion/notas e items.
+- Cada item muestra cantidad, nombre de producto y `unitPrice` historico.
+- Permite cambiar estado con `PATCH /api/orders/:id/status`.
+- Estados usados por frontend: `PENDING`, `CONFIRMED`, `PREPARING`, `READY`, `COMPLETED`, `CANCELLED`.
+- La UI sigue sin router; todo esta en `App.tsx` y estilos en `App.css`.
+- `client npm run build` pasa correctamente.
+
+## Actualizacion frontend layout 2026-09-29
+
+El panel admin fue refactorizado:
+
+- Antes de login se mantiene la pantalla partida con imagen + formulario.
+- Despues de login se usa layout full width con topbar fija, marca, navegacion y usuario.
+- Navegacion interna actual: `Pedidos`, `Categorias`, `Productos`.
+- `Pedidos` sigue siendo funcional: lista pedidos, refresca, valida sesion y cambia estado.
+- `Categorias` y `Productos` existen como placeholders visibles para el siguiente desarrollo.
+- No se agrego router todavia; el estado `activeSection` en `client/src/App.tsx` controla la seccion activa.
+- El build del frontend sigue pasando con `client npm run build`.
+
+## Actualizacion frontend categorias 2026-09-29
+
+La seccion `Categorias` del panel admin ya esta implementada en `client/src/App.tsx`:
+
+- Carga categorias con `GET /api/categories` al entrar a la pestaña.
+- Muestra nombre, cantidad de productos (`_count.products`), estado activa/inactiva y acciones.
+- Permite crear categoria con `POST /api/categories` usando JWT.
+- Permite editar nombre con `PATCH /api/categories/:id` usando JWT.
+- Permite desactivar con `DELETE /api/categories/:id` usando JWT.
+- Tras crear/editar/desactivar se refresca la lista.
+- `client npm run build` pasa correctamente.
+
+## Actualizacion frontend productos 2026-09-29
+
+La seccion `Productos` del panel admin ya esta implementada en `client/src/App.tsx`:
+
+- Carga productos con `GET /api/products` al entrar a la pestaña.
+- Carga categorias con `GET /api/categories` para el selector de categoria.
+- Muestra producto, descripcion, categoria, precio, estado y acciones.
+- Permite crear producto con `POST /api/products` usando JWT.
+- Permite editar nombre, descripcion, precio y categoria con `PATCH /api/products/:id` usando JWT.
+- Permite desactivar con `DELETE /api/products/:id` usando JWT.
+- Tras crear/editar/desactivar se refresca la lista.
+- El precio se envia como number; el input del frontend mantiene string y se convierte con `Number` al enviar.
+- `client npm run build` pasa correctamente.
+
+## Punto de continuacion recomendado 2026-09-29
+
+El panel admin minimo esta completo:
+
+- Login admin.
+- Restauracion de sesion con JWT.
+- Pedidos: listar, refrescar, cambiar estado.
+- Categorias: listar, crear, editar, desactivar.
+- Productos: listar, crear, editar, desactivar.
+
+Siguiente objetivo recomendado: interfaz publica del cliente.
+
+Objetivo MVP del frontend publico:
+
+1. Ruta publica `/` para clientes, sin login.
+2. Ruta admin `/admin` para el panel interno.
+3. Cargar categorias/productos activos desde API publica.
+4. Mostrar menu agrupado por categorias.
+5. Carrito simple en estado local.
+6. Permitir modificar cantidades y eliminar items.
+7. Checkout con nombre, telefono, tipo de pedido, direccion si es envio y notas.
+8. Crear pedido con `POST /api/orders`.
+9. Mostrar confirmacion del pedido creado.
+10. Verificar que el pedido aparezca en el panel admin.
+
+Decision tecnica pendiente:
+
+- Conviene agregar `react-router-dom` para separar `/` y `/admin`.
+- Alternativa simple: manejar `window.location.pathname` manualmente, pero no escala tan bien.
+- Recomendacion actual: instalar `react-router-dom` y separar componentes principales:
+  - `PublicMenuPage`
+  - `AdminPage`
+  - `LoginPage` si se decide extraerlo
+
+Notas para otra sesion Codex:
+
+- Antes de tocar frontend, leer `client/src/App.tsx` y `client/src/App.css` completos.
+- El frontend todavia esta todo en `App.tsx`; evitar refactors grandes salvo que sean necesarios para separar publico/admin.
+- Si se agrega `react-router-dom`, hacerlo de forma incremental.
+- Mantener ASCII en textos nuevos para evitar problemas de encoding.
+- Verificar siempre con `cd client && npm run build`.
+- Si Vitest o Vite fallan con `spawn EPERM`, repetir fuera del sandbox con aprobacion.

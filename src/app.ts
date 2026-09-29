@@ -4,6 +4,7 @@ import { errorHandler } from "./middlewares/errorHandler.js";
 import categoriesRouter from "./modules/categories/categories.routes.js";
 import productsRouter from "./modules/products/products.routes.js";
 import ordersRouter from "./modules/orders/orders.routes.js"
+import authRouter from "./modules/auth/auth.routes.js"
 
 const app: Application = express()
 
@@ -11,8 +12,9 @@ const app: Application = express()
 app.use(express.json())
 //Routes
 app.use('/api/categories', categoriesRouter);
-app.use('/api/products', productsRouter)
-app.use('/api/orders', ordersRouter)
+app.use('/api/products', productsRouter);
+app.use('/api/orders', ordersRouter);
+app.use('/api/auth', authRouter);
 
 //ENDPOINT DE SALUD
 app.use('/api/health', (_req: Request, res: Response) => {
