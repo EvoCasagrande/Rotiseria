@@ -1,4 +1,5 @@
 import express, { type Request, type Response, type Application, type NextFunction } from "express";
+import cors from "cors";
 import { AppError } from "./utils/AppError.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
 import categoriesRouter from "./modules/categories/categories.routes.js";
@@ -9,6 +10,21 @@ import authRouter from "./modules/auth/auth.routes.js"
 const app: Application = express()
 
 //Middlewares
+const allowedOrigins = process.env.CORS_ORIGIN
+    ?.split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean) ?? []
+
+app.use(cors({
+    origin: (origin, callback) => {
+        if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+            callback(null, true)
+            return
+        }
+
+        callback(new AppError("Origen no permitido por CORS", 403))
+    },
+}))
 app.use(express.json())
 //Routes
 app.use('/api/categories', categoriesRouter);

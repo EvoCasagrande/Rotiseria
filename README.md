@@ -13,6 +13,7 @@ DATABASE_URL="postgresql://..."
 JWT_SECRET="..."
 PORT=3000
 ADMIN_PASSWORD="..."
+CORS_ORIGIN="https://tu-front.vercel.app"
 ```
 
 En produccion, `JWT_SECRET` debe ser un valor largo y aleatorio de al menos 32 caracteres.
