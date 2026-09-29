@@ -18,7 +18,12 @@ export class ProductsService {
                     mode: 'insensitive'
                 },
                 active: query.active,
-                categoryId: query.categoryId
+                categoryId: query.categoryId,
+                ...(query.active === true && {
+                    category: {
+                        active: true
+                    }
+                })
             },
             include: {
                 category: true

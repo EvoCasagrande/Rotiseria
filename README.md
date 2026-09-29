@@ -12,7 +12,10 @@ Backend MVP para administrar menu, productos, pedidos y acceso interno de una ro
 DATABASE_URL="postgresql://..."
 JWT_SECRET="..."
 PORT=3000
+ADMIN_PASSWORD="..."
 ```
+
+En produccion, `JWT_SECRET` debe ser un valor largo y aleatorio de al menos 32 caracteres.
 
 ## Comandos
 
@@ -20,12 +23,29 @@ PORT=3000
 npm install
 npx prisma generate
 npm run dev
+npm run seed
 ```
 
 Crear o actualizar el admin inicial:
 
 ```bash
-npx tsx prisma/seed.ts
+npm run seed
+```
+
+El seed tambien carga un menu demo. Por defecto no elimina datos existentes.
+
+Para limpiar pedidos, productos y categorias antes de cargar el menu demo, ejecutar explicitamente:
+
+```powershell
+$env:ALLOW_DESTRUCTIVE_SEED="true"; npm run seed
+```
+
+Este modo elimina items de pedidos, pedidos, productos y categorias. No elimina `AdminUser`.
+
+Para crear el admin con otra contrasena cuando todavia no existe:
+
+```powershell
+$env:ADMIN_PASSWORD="una-contrasena-segura"; npm run seed
 ```
 
 Compilar:
@@ -104,3 +124,11 @@ PATCH /api/orders/:id/status
 - Los pedidos se cancelan cambiando `status` a `CANCELLED`.
 - El total de un pedido se calcula en el backend.
 - El frontend no debe enviar precios ni totales al crear pedidos.
+
+## Checklist MVP
+
+- Ejecutar migraciones con `npm run db:deploy`.
+- Ejecutar seed con contrasena segura para el admin inicial.
+- Cambiar la contrasena por defecto `Admin123` antes de publicar.
+- Usar `JWT_SECRET` fuerte en produccion.
+- Verificar el flujo completo: crear productos, crear pedido publico, verlo en admin y cambiar estados.

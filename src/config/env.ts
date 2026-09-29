@@ -7,6 +7,10 @@ const getJwtSecret = (): string => {
         throw new Error('JWT_SECRET no esta definida. Es obligatoria y no puede estar vacia')
     }
 
+    if(process.env.NODE_ENV === 'production' && jwtSecret.length < 32) {
+        throw new Error('JWT_SECRET debe tener al menos 32 caracteres en produccion')
+    }
+
     return jwtSecret
 }
 
