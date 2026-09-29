@@ -6,6 +6,10 @@ const categoryBodySchema = z.object({
         .trim()
         .min(2, "El nombre debe tener al menos 2 caracteres")
         .max(50, "El nombre no puede superar los 50 caracteres"),
+
+    active: z
+        .boolean()
+        .optional(),
 })
 
 const categoryParamsSchema = z.object({
@@ -37,6 +41,10 @@ export const createCategorySchema = z.object({
 export const updateCategorySchema = z.object({
     params: categoryParamsSchema,
     body: categoryBodySchema
+        .partial()
+        .refine((obj) => Object.values(obj).some((val) => val !== undefined),
+        { message: 'Debes modificar al menos un campo' }
+    )
 });
 
 export const deactivateCategorySchema = z.object({

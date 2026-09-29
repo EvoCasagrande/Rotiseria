@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { apiPath, readError } from '../api'
 import type {
@@ -52,8 +52,41 @@ export function AdminPage() {
   const [ordersMessage, setOrdersMessage] = useState('')
   const [categoriesMessage, setCategoriesMessage] = useState('')
   const [productsMessage, setProductsMessage] = useState('')
+  const [highlightedOrderIds, setHighlightedOrderIds] = useState<string[]>([])
+  const knownOrderIdsRef = useRef<Set<string>>(new Set())
+  const hasLoadedOrdersRef = useRef(false)
 
   const isLoggedIn = Boolean(token && admin)
+
+  const playNewOrderSound = () => {
+    try {
+      const AudioContext =
+        window.AudioContext ||
+        (window as typeof window & { webkitAudioContext?: typeof window.AudioContext }).webkitAudioContext
+
+      if (!AudioContext) {
+        return
+      }
+
+      const audioContext = new AudioContext()
+      const oscillator = audioContext.createOscillator()
+      const gain = audioContext.createGain()
+
+      oscillator.type = 'sine'
+      oscillator.frequency.setValueAtTime(880, audioContext.currentTime)
+      oscillator.frequency.setValueAtTime(660, audioContext.currentTime + 0.16)
+      gain.gain.setValueAtTime(0.0001, audioContext.currentTime)
+      gain.gain.exponentialRampToValueAtTime(0.18, audioContext.currentTime + 0.02)
+      gain.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.34)
+
+      oscillator.connect(gain)
+      gain.connect(audioContext.destination)
+      oscillator.start()
+      oscillator.stop(audioContext.currentTime + 0.36)
+    } catch {
+      // Some browsers block audio until there is a user gesture.
+    }
+  }
 
   const loadSession = async (currentToken = token) => {
     if (!currentToken) {
@@ -121,6 +154,24 @@ export function AdminPage() {
       }
 
       const data = (await response.json()) as { orders: Order[] }
+      const nextOrderIds = new Set(data.orders.map((order) => order.id))
+      const newOrderIds = data.orders
+        .filter((order) => !knownOrderIdsRef.current.has(order.id))
+        .map((order) => order.id)
+
+      if (hasLoadedOrdersRef.current && newOrderIds.length > 0) {
+        setHighlightedOrderIds((currentIds) => [...new Set([...newOrderIds, ...currentIds])])
+        playNewOrderSound()
+
+        window.setTimeout(() => {
+          setHighlightedOrderIds((currentIds) =>
+            currentIds.filter((orderId) => !newOrderIds.includes(orderId)),
+          )
+        }, 20000)
+      }
+
+      knownOrderIdsRef.current = nextOrderIds
+      hasLoadedOrdersRef.current = true
       setOrders(data.orders)
     } catch (error) {
       setOrdersMessage(error instanceof Error ? error.message : 'No se pudieron cargar pedidos')
@@ -207,6 +258,20 @@ export function AdminPage() {
   }, [admin, token])
 
   useEffect(() => {
+    if (!token || !admin || activeSection !== 'orders') {
+      return
+    }
+
+    const intervalId = window.setInterval(() => {
+      void loadOrders()
+    }, 10000)
+
+    return () => window.clearInterval(intervalId)
+    // Keeps the orders panel fresh without polling other admin sections.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeSection, admin, token, orderFilters])
+
+  useEffect(() => {
     if (admin && activeSection === 'categories') {
       void loadCategories()
     }
@@ -256,6 +321,9 @@ export function AdminPage() {
     setToken('')
     setAdmin(null)
     setOrders([])
+    setHighlightedOrderIds([])
+    knownOrderIdsRef.current = new Set()
+    hasLoadedOrdersRef.current = false
     setCategories([])
     setProducts([])
     setPassword('')
@@ -394,6 +462,32 @@ export function AdminPage() {
     }
   }
 
+  const activateCategory = async (categoryId: string) => {
+    setCategoriesLoading(true)
+    setCategoriesMessage('')
+
+    try {
+      const response = await fetch(apiPath(`/api/categories/${categoryId}`), {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ active: true }),
+      })
+
+      if (!response.ok) {
+        throw new Error(await readError(response))
+      }
+
+      await loadCategories()
+    } catch (error) {
+      setCategoriesMessage(error instanceof Error ? error.message : 'No se pudo activar la categoria')
+    } finally {
+      setCategoriesLoading(false)
+    }
+  }
+
   const updateNewProductField = (field: keyof ProductForm, value: string) => {
     setNewProduct((currentProduct) => ({
       ...currentProduct,
@@ -517,6 +611,32 @@ export function AdminPage() {
       await loadProducts()
     } catch (error) {
       setProductsMessage(error instanceof Error ? error.message : 'No se pudo desactivar el producto')
+    } finally {
+      setProductsLoading(false)
+    }
+  }
+
+  const activateProduct = async (productId: string) => {
+    setProductsLoading(true)
+    setProductsMessage('')
+
+    try {
+      const response = await fetch(apiPath(`/api/products/${productId}`), {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ active: true }),
+      })
+
+      if (!response.ok) {
+        throw new Error(await readError(response))
+      }
+
+      await loadProducts()
+    } catch (error) {
+      setProductsMessage(error instanceof Error ? error.message : 'No se pudo activar el producto')
     } finally {
       setProductsLoading(false)
     }
@@ -651,12 +771,16 @@ export function AdminPage() {
                 {orders.length === 0 && !ordersLoading ? (
                   <p className="empty-state">Todavia no hay pedidos para mostrar.</p>
                 ) : (
-                  orders.map((order) => (
-                    <article className="order-card" key={order.id}>
+                  orders.map((order) => {
+                    const isNewOrder = highlightedOrderIds.includes(order.id)
+
+                    return (
+                    <article className={isNewOrder ? 'order-card new-order' : 'order-card'} key={order.id}>
                       <div className="order-main">
                         <div>
                           <div className="order-title-row">
                             <h2>{order.customerName}</h2>
+                            {isNewOrder && <span className="new-order-badge">NUEVO</span>}
                             <span className={`status-badge status-${order.status.toLowerCase()}`}>
                               {order.status}
                             </span>
@@ -703,7 +827,8 @@ export function AdminPage() {
                         </select>
                       </label>
                     </article>
-                  ))
+                    )
+                  })
                 )}
               </section>
             </div>
@@ -796,14 +921,24 @@ export function AdminPage() {
                             >
                               Editar
                             </button>
-                            <button
-                              className="danger"
-                              disabled={categoriesLoading || !category.active}
-                              onClick={() => void deactivateCategory(category.id)}
-                              type="button"
-                            >
-                              Desactivar
-                            </button>
+                            {category.active ? (
+                              <button
+                                className="danger"
+                                disabled={categoriesLoading}
+                                onClick={() => void deactivateCategory(category.id)}
+                                type="button"
+                              >
+                                Desactivar
+                              </button>
+                            ) : (
+                              <button
+                                disabled={categoriesLoading}
+                                onClick={() => void activateCategory(category.id)}
+                                type="button"
+                              >
+                                Activar
+                              </button>
+                            )}
                           </>
                         )}
                       </div>
@@ -982,14 +1117,24 @@ export function AdminPage() {
                             >
                               Editar
                             </button>
-                            <button
-                              className="danger"
-                              disabled={productsLoading || !product.active}
-                              onClick={() => void deactivateProduct(product.id)}
-                              type="button"
-                            >
-                              Desactivar
-                            </button>
+                            {product.active ? (
+                              <button
+                                className="danger"
+                                disabled={productsLoading}
+                                onClick={() => void deactivateProduct(product.id)}
+                                type="button"
+                              >
+                                Desactivar
+                              </button>
+                            ) : (
+                              <button
+                                disabled={productsLoading}
+                                onClick={() => void activateProduct(product.id)}
+                                type="button"
+                              >
+                                Activar
+                              </button>
+                            )}
                           </>
                         )}
                       </div>

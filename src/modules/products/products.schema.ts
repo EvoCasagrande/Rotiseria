@@ -20,7 +20,11 @@ const productBodySchema = z.object({
     
     categoryId: z
         .string()
-        .min(1, "La categoria es obligatoria")
+        .min(1, "La categoria es obligatoria"),
+
+    active: z
+        .boolean()
+        .optional(),
 })
 
 const productParamsSchema = z.object({
