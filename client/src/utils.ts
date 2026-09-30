@@ -12,9 +12,9 @@ export const ORDER_STATUSES = [
 export const ORDER_STATUS_LABELS = {
   PENDING: 'Pendiente',
   CONFIRMED: 'Confirmado',
-  PREPARING: 'En preparacion',
-  READY: 'Listo',
-  COMPLETED: 'Completado',
+  PREPARING: 'Preparando',
+  READY: 'Listo para entregar',
+  COMPLETED: 'Entregado',
   CANCELLED: 'Cancelado',
 } as const
 

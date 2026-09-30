@@ -20,6 +20,7 @@ export function PublicMenuPage() {
   const [submitting, setSubmitting] = useState(false)
   const [message, setMessage] = useState('')
   const [confirmedOrder, setConfirmedOrder] = useState<Order | null>(null)
+  const [recentlyAddedProductId, setRecentlyAddedProductId] = useState('')
 
   const cartTotal = useMemo(
     () => cart.reduce((total, item) => total + Number(item.product.price) * item.quantity, 0),
@@ -77,6 +78,13 @@ export function PublicMenuPage() {
 
   const addToCart = (product: Product) => {
     setConfirmedOrder(null)
+    setRecentlyAddedProductId(product.id)
+    window.setTimeout(() => {
+      setRecentlyAddedProductId((currentProductId) =>
+        currentProductId === product.id ? '' : currentProductId,
+      )
+    }, 1000)
+
     setCart((currentCart) => {
       const existingItem = currentCart.find((item) => item.product.id === product.id)
 
@@ -181,10 +189,6 @@ export function PublicMenuPage() {
             <span>Carrito</span>
             {cartItemsCount > 0 && <strong>{cartItemsCount}</strong>}
           </button>
-
-          <a className="admin-link" href="/admin">
-            Panel admin
-          </a>
         </div>
       </header>
 
@@ -251,8 +255,16 @@ export function PublicMenuPage() {
 
                         <div className="menu-item-footer">
                           <strong>{formatPrice(product.price)}</strong>
-                          <button className="compact" onClick={() => addToCart(product)} type="button">
-                            Agregar
+                          <button
+                            className={
+                              recentlyAddedProductId === product.id
+                                ? 'compact added-feedback'
+                                : 'compact'
+                            }
+                            onClick={() => addToCart(product)}
+                            type="button"
+                          >
+                            {recentlyAddedProductId === product.id ? 'Agregado' : 'Agregar'}
                           </button>
                         </div>
                       </article>
@@ -274,6 +286,11 @@ export function PublicMenuPage() {
             <button className="secondary compact" onClick={() => setActiveView('menu')} type="button">
               Volver al menu
             </button>
+          </div>
+
+          <div className="cart-summary">
+            <span>{cartItemsCount} productos</span>
+            <strong>{formatPrice(cartTotal)}</strong>
           </div>
 
           {cart.length === 0 ? (
@@ -315,52 +332,58 @@ export function PublicMenuPage() {
           </div>
 
           <form className="checkout-form" onSubmit={createOrder}>
-            <label>
-              Nombre
-              <input
-                onChange={(event) => updateCheckoutField('customerName', event.target.value)}
-                value={checkout.customerName}
-              />
-            </label>
-
-            <label>
-              Telefono
-              <input
-                inputMode="tel"
-                onChange={(event) => updateCheckoutField('customerPhone', event.target.value)}
-                value={checkout.customerPhone}
-              />
-            </label>
-
-            <label>
-              Tipo de pedido
-              <select
-                onChange={(event) => updateCheckoutField('orderType', event.target.value as OrderType)}
-                value={checkout.orderType}
-              >
-                <option value="PICKUP">Retiro</option>
-                <option value="DELIVERY">Envio</option>
-              </select>
-            </label>
-
-            {checkout.orderType === 'DELIVERY' && (
+            <section className="checkout-section">
+              <h3>Datos del cliente</h3>
               <label>
-                Direccion
+                Nombre
                 <input
-                  onChange={(event) => updateCheckoutField('address', event.target.value)}
-                  value={checkout.address}
+                  onChange={(event) => updateCheckoutField('customerName', event.target.value)}
+                  value={checkout.customerName}
                 />
               </label>
-            )}
 
-            <label>
-              Observaciones
-              <textarea
-                maxLength={200}
-                onChange={(event) => updateCheckoutField('notes', event.target.value)}
-                value={checkout.notes}
-              />
-            </label>
+              <label>
+                Telefono
+                <input
+                  inputMode="tel"
+                  onChange={(event) => updateCheckoutField('customerPhone', event.target.value)}
+                  value={checkout.customerPhone}
+                />
+              </label>
+            </section>
+
+            <section className="checkout-section">
+              <h3>Entrega</h3>
+              <label>
+                Tipo de pedido
+                <select
+                  onChange={(event) => updateCheckoutField('orderType', event.target.value as OrderType)}
+                  value={checkout.orderType}
+                >
+                  <option value="PICKUP">Retiro</option>
+                  <option value="DELIVERY">Envio</option>
+                </select>
+              </label>
+
+              {checkout.orderType === 'DELIVERY' && (
+                <label>
+                  Direccion
+                  <input
+                    onChange={(event) => updateCheckoutField('address', event.target.value)}
+                    value={checkout.address}
+                  />
+                </label>
+              )}
+
+              <label>
+                Observaciones
+                <textarea
+                  maxLength={200}
+                  onChange={(event) => updateCheckoutField('notes', event.target.value)}
+                  value={checkout.notes}
+                />
+              </label>
+            </section>
 
             <button disabled={submitting || cart.length === 0} type="submit">
               {submitting ? 'Enviando...' : 'Enviar pedido'}
