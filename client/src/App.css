@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Lora:wght@600;700&family=Nunito+Sans:wght@400;700;800;900&display=swap');
+
 .login-shell {
   min-height: 100vh;
   display: grid;
@@ -13,6 +15,7 @@
     linear-gradient(180deg, rgba(254, 211, 83, 0.34), rgba(255, 249, 235, 0.96) 320px),
     #fff8e6;
   color: #2b1410;
+  font-family: "Nunito Sans", Inter, ui-sans-serif, system-ui, sans-serif;
 }
 
 .public-header {
@@ -42,6 +45,7 @@
 
 .public-header h1 {
   margin-bottom: 8px;
+  font-family: Lora, Georgia, serif;
 }
 
 .public-header p {
@@ -216,6 +220,43 @@
 .section-heading h2,
 .cart-panel h2 {
   margin-bottom: 0;
+  font-family: Lora, Georgia, serif;
+}
+
+.menu-filters {
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+  padding: 16px;
+  border: 1px solid rgba(184, 116, 0, 0.18);
+  border-radius: 8px;
+  background: #fff8e4;
+}
+
+.menu-filters label {
+  margin-bottom: 0;
+}
+
+.category-filter {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.filter-chip {
+  width: auto;
+  min-height: 38px;
+  flex: 0 0 auto;
+  border-color: rgba(184, 116, 0, 0.28);
+  background: #fffef9;
+  color: #56070c;
+}
+
+.filter-chip.active {
+  border-color: #821018;
+  background: #821018;
+  color: #ffffff;
 }
 
 .menu-category {
@@ -226,6 +267,7 @@
   margin: 0 0 12px;
   color: #56070c;
   font-size: 20px;
+  font-family: Lora, Georgia, serif;
 }
 
 .menu-grid {
@@ -250,6 +292,7 @@
   margin: 0 0 8px;
   color: #56070c;
   font-size: 17px;
+  font-family: Lora, Georgia, serif;
 }
 
 .menu-item p,
@@ -394,6 +437,18 @@
   border-color: rgba(184, 116, 0, 0.32);
   background: #fff8e4;
   color: #821018;
+}
+
+.public-shell .filter-chip {
+  border-color: rgba(184, 116, 0, 0.28);
+  background: #fffef9;
+  color: #56070c;
+}
+
+.public-shell .filter-chip.active {
+  border-color: #821018;
+  background: #821018;
+  color: #ffffff;
 }
 
 .public-shell .muted-text,

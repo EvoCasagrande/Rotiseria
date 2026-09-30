@@ -8,6 +8,8 @@ export function PublicMenuPage() {
   const [activeView, setActiveView] = useState<'menu' | 'cart'>('menu')
   const [categories, setCategories] = useState<Category[]>([])
   const [products, setProducts] = useState<Product[]>([])
+  const [selectedCategoryId, setSelectedCategoryId] = useState('')
+  const [menuSearch, setMenuSearch] = useState('')
   const [cart, setCart] = useState<CartItem[]>([])
   const [checkout, setCheckout] = useState<CheckoutForm>({
     customerName: '',
@@ -32,11 +34,28 @@ export function PublicMenuPage() {
   )
 
   const productsByCategory = useMemo(() => {
-    return categories.map((category) => ({
+    const normalizedSearch = menuSearch.trim().toLowerCase()
+    const visibleCategories = selectedCategoryId
+      ? categories.filter((category) => category.id === selectedCategoryId)
+      : categories
+
+    return visibleCategories.map((category) => ({
       category,
-      products: products.filter((product) => product.categoryId === category.id),
+      products: products.filter((product) => {
+        const matchesCategory = product.categoryId === category.id
+        const matchesSearch =
+          !normalizedSearch ||
+          product.name.toLowerCase().includes(normalizedSearch) ||
+          product.description?.toLowerCase().includes(normalizedSearch)
+
+        return matchesCategory && matchesSearch
+      }),
     }))
-  }, [categories, products])
+  }, [categories, menuSearch, products, selectedCategoryId])
+
+  const hasVisibleProducts = productsByCategory.some(
+    ({ products: categoryProducts }) => categoryProducts.length > 0,
+  )
 
   const loadMenu = async () => {
     setLoading(true)
@@ -225,8 +244,41 @@ export function PublicMenuPage() {
             </button>
           </div>
 
+          <div className="menu-filters" aria-label="Filtros del menu">
+            <label>
+              Buscar producto
+              <input
+                onChange={(event) => setMenuSearch(event.target.value)}
+                placeholder="Ej: pizza, empanada, bebida"
+                value={menuSearch}
+              />
+            </label>
+
+            <div className="category-filter" aria-label="Filtrar por categoria">
+              <button
+                className={selectedCategoryId === '' ? 'filter-chip active' : 'filter-chip'}
+                onClick={() => setSelectedCategoryId('')}
+                type="button"
+              >
+                Todas
+              </button>
+              {categories.map((category) => (
+                <button
+                  className={selectedCategoryId === category.id ? 'filter-chip active' : 'filter-chip'}
+                  key={category.id}
+                  onClick={() => setSelectedCategoryId(category.id)}
+                  type="button"
+                >
+                  {category.name}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {productsByCategory.length === 0 && !loading ? (
             <p className="empty-state">Todavia no hay productos disponibles.</p>
+          ) : !hasVisibleProducts && !loading ? (
+            <p className="empty-state">No encontramos productos con esos filtros.</p>
           ) : (
             productsByCategory.map(({ category, products: categoryProducts }) => (
               <section className="menu-category" key={category.id}>
