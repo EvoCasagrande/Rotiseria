@@ -160,6 +160,25 @@
   margin-bottom: 0;
 }
 
+.back-button {
+  width: 42px;
+  min-height: 42px;
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+  border-radius: 999px;
+}
+
+.back-button svg {
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2.3;
+}
+
 .cart-summary {
   display: flex;
   align-items: center;
@@ -299,7 +318,8 @@
   font-size: 18px;
 }
 
-.public-shell button.added-feedback {
+.public-shell button.added-feedback,
+.public-shell button.added-feedback:hover:not(:disabled) {
   border-color: #f6a700;
   background: #fed353;
   color: #56070c;
@@ -337,15 +357,16 @@
 
 .quantity-control {
   display: grid;
-  grid-template-columns: 34px 28px 34px;
+  grid-template-columns: 32px 28px 32px;
   align-items: center;
   gap: 6px;
   text-align: center;
 }
 
 .quantity-control button {
-  min-height: 34px;
+  min-height: 32px;
   padding: 0;
+  border-radius: 999px;
 }
 
 .quantity-control span {
@@ -418,7 +439,7 @@
 
 .public-shell button.secondary {
   border-color: rgba(184, 116, 0, 0.32);
-  background: #fed353;
+  background: #fff8e4;
   color: #56070c;
 }
 

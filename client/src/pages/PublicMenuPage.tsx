@@ -283,8 +283,15 @@ export function PublicMenuPage() {
               <p className="eyebrow dark">Pedido</p>
               <h2>Carrito</h2>
             </div>
-            <button className="secondary compact" onClick={() => setActiveView('menu')} type="button">
-              Volver al menu
+            <button
+              aria-label="Volver al menu"
+              className="back-button"
+              onClick={() => setActiveView('menu')}
+              type="button"
+            >
+              <svg aria-hidden="true" viewBox="0 0 24 24">
+                <path d="M15 18 9 12l6-6" />
+              </svg>
             </button>
           </div>
 
