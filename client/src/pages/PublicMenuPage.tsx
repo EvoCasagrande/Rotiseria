@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { apiPath, readError } from '../api'
 import type { CartItem, Category, CheckoutForm, Order, OrderType, Product } from '../types'
@@ -21,6 +21,7 @@ export function PublicMenuPage() {
   const [message, setMessage] = useState('')
   const [confirmedOrder, setConfirmedOrder] = useState<Order | null>(null)
   const [recentlyAddedProductId, setRecentlyAddedProductId] = useState('')
+  const confirmationRef = useRef<HTMLElement | null>(null)
 
   const cartTotal = useMemo(
     () => cart.reduce((total, item) => total + Number(item.product.price) * item.quantity, 0),
@@ -75,6 +76,19 @@ export function PublicMenuPage() {
   useEffect(() => {
     void loadMenu()
   }, [])
+
+  useEffect(() => {
+    if (!confirmedOrder) {
+      return
+    }
+
+    window.setTimeout(() => {
+      confirmationRef.current?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      })
+    }, 100)
+  }, [confirmedOrder])
 
   const addToCart = (product: Product) => {
     setConfirmedOrder(null)
@@ -195,7 +209,7 @@ export function PublicMenuPage() {
       {message && <p className="form-message">{message}</p>}
 
       {confirmedOrder && (
-        <section className="confirmation-panel" aria-live="polite">
+        <section className="confirmation-panel" ref={confirmationRef} aria-live="polite">
           <div>
             <p className="eyebrow dark">Pedido recibido</p>
             <h2>Gracias, {confirmedOrder.customerName}</h2>
