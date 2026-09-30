@@ -9,8 +9,10 @@
 .public-shell {
   min-height: 100vh;
   padding: 32px 28px 56px;
-  background: #f6f7f9;
-  color: #1e252d;
+  background:
+    linear-gradient(180deg, rgba(254, 211, 83, 0.34), rgba(255, 249, 235, 0.96) 320px),
+    #fff8e6;
+  color: #2b1410;
 }
 
 .public-header {
@@ -23,11 +25,13 @@
   padding: 34px;
   border-radius: 8px;
   background:
-    linear-gradient(rgba(255, 255, 255, 0.88), rgba(255, 255, 255, 0.92)),
+    linear-gradient(90deg, rgba(86, 7, 12, 0.94), rgba(130, 16, 24, 0.78)),
     url('https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=1400&q=80');
   background-position: center;
   background-size: cover;
-  border: 1px solid #dde2e8;
+  border: 1px solid rgba(86, 7, 12, 0.16);
+  box-shadow: 0 18px 45px rgba(86, 7, 12, 0.22);
+  color: #ffffff;
 }
 
 .public-actions {
@@ -42,7 +46,7 @@
 
 .public-header p {
   margin-bottom: 0;
-  color: #475467;
+  color: rgba(255, 255, 255, 0.84);
 }
 
 .admin-link {
@@ -51,10 +55,10 @@
   align-items: center;
   justify-content: center;
   padding: 0 14px;
-  border: 1px solid #cfd6df;
+  border: 1px solid rgba(254, 211, 83, 0.45);
   border-radius: 6px;
-  background: #ffffff;
-  color: #1f2937;
+  background: rgba(86, 7, 12, 0.48);
+  color: #ffffff;
   font-weight: 800;
   text-decoration: none;
   white-space: nowrap;
@@ -71,9 +75,10 @@
   align-items: center;
   gap: 8px;
   padding: 9px 12px;
-  border-color: #111827;
-  background: #111827;
-  box-shadow: 0 12px 26px rgba(15, 23, 42, 0.2);
+  border-color: #fed353;
+  background: #821018;
+  color: #ffffff;
+  box-shadow: 0 12px 26px rgba(86, 7, 12, 0.32);
 }
 
 .cart-button svg {
@@ -93,8 +98,8 @@
   place-items: center;
   padding: 0 6px;
   border-radius: 999px;
-  background: #f59e0b;
-  color: #111827;
+  background: #f6a700;
+  color: #56070c;
   font-size: 12px;
 }
 
@@ -117,8 +122,8 @@
 .cart-screen {
   border: 1px solid #dde2e8;
   border-radius: 8px;
-  background: #ffffff;
-  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
+  background: #fffdf7;
+  box-shadow: 0 14px 34px rgba(86, 7, 12, 0.09);
 }
 
 .menu-panel {
@@ -144,7 +149,7 @@
   gap: 16px;
   margin-bottom: 18px;
   padding-bottom: 16px;
-  border-bottom: 1px solid #eef0f3;
+  border-bottom: 1px solid rgba(184, 116, 0, 0.16);
 }
 
 .cart-screen-header h2 {
@@ -159,8 +164,8 @@
   align-items: center;
   justify-content: space-between;
   gap: 18px;
-  border-color: #bbf7d0;
-  background: #f0fdf4;
+  border-color: rgba(184, 116, 0, 0.28);
+  background: #fed353;
 }
 
 .confirmation-panel h2 {
@@ -169,11 +174,11 @@
 
 .confirmation-panel p {
   margin-bottom: 0;
-  color: #166534;
+  color: #56070c;
 }
 
 .confirmation-panel strong {
-  color: #166534;
+  color: #56070c;
   font-size: 24px;
   white-space: nowrap;
 }
@@ -191,7 +196,7 @@
   display: flex;
   justify-content: space-between;
   gap: 16px;
-  color: #166534;
+  color: #56070c;
   font-size: 14px;
 }
 
@@ -205,7 +210,7 @@
   justify-content: space-between;
   gap: 16px;
   padding-bottom: 16px;
-  border-bottom: 1px solid #eef0f3;
+  border-bottom: 1px solid rgba(184, 116, 0, 0.16);
 }
 
 .section-heading h2,
@@ -219,7 +224,7 @@
 
 .menu-category h3 {
   margin: 0 0 12px;
-  color: #101828;
+  color: #56070c;
   font-size: 20px;
 }
 
@@ -236,14 +241,14 @@
   justify-content: space-between;
   gap: 18px;
   padding: 16px;
-  border: 1px solid #dde2e8;
+  border: 1px solid rgba(184, 116, 0, 0.18);
   border-radius: 8px;
-  background: #ffffff;
+  background: linear-gradient(180deg, #ffffff, #fff8e4);
 }
 
 .menu-item h4 {
   margin: 0 0 8px;
-  color: #101828;
+  color: #56070c;
   font-size: 17px;
 }
 
@@ -262,7 +267,7 @@
 }
 
 .menu-item-footer strong {
-  color: #101828;
+  color: #821018;
   font-size: 18px;
 }
 
@@ -280,8 +285,9 @@
   align-items: center;
   gap: 12px;
   padding: 12px;
-  border: 1px solid #eef0f3;
+  border: 1px solid rgba(184, 116, 0, 0.18);
   border-radius: 8px;
+  background: #fff8e4;
 }
 
 .cart-list strong,
@@ -310,7 +316,7 @@
 
 .quantity-control span {
   margin-top: 0;
-  color: #101828;
+  color: #56070c;
   font-weight: 800;
 }
 
@@ -320,16 +326,16 @@
   gap: 12px;
   margin: 18px 0;
   padding-top: 16px;
-  border-top: 1px solid #eef0f3;
+  border-top: 1px solid rgba(184, 116, 0, 0.16);
 }
 
 .cart-total span {
-  color: #667085;
+  color: #821018;
   font-weight: 800;
 }
 
 .cart-total strong {
-  color: #101828;
+  color: #56070c;
   font-size: 22px;
 }
 
@@ -340,6 +346,59 @@
 
 .checkout-form label {
   margin-bottom: 0;
+}
+
+.public-shell .eyebrow.dark {
+  color: #b87400;
+}
+
+.public-header .eyebrow.dark {
+  color: #fed353;
+}
+
+.public-shell button {
+  border-color: #821018;
+  background: #821018;
+  color: #ffffff;
+}
+
+.public-shell button:hover:not(:disabled) {
+  background: #56070c;
+}
+
+.public-shell button.secondary {
+  border-color: rgba(184, 116, 0, 0.32);
+  background: #fed353;
+  color: #56070c;
+}
+
+.public-shell button.secondary:hover:not(:disabled) {
+  background: #f6a700;
+}
+
+.public-shell input,
+.public-shell select,
+.public-shell textarea {
+  border-color: rgba(184, 116, 0, 0.28);
+  background: #fffef9;
+}
+
+.public-shell input:focus,
+.public-shell select:focus,
+.public-shell textarea:focus {
+  border-color: #b87400;
+  outline-color: rgba(246, 167, 0, 0.22);
+}
+
+.public-shell .empty-state {
+  border-color: rgba(184, 116, 0, 0.32);
+  background: #fff8e4;
+  color: #821018;
+}
+
+.public-shell .muted-text,
+.public-shell .cart-list span {
+  color: rgba(86, 7, 12, 0.66);
 }
 
 .brand-panel {
