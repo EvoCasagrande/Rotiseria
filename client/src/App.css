@@ -30,6 +30,12 @@
   border: 1px solid #dde2e8;
 }
 
+.public-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .public-header h1 {
   margin-bottom: 8px;
 }
@@ -54,6 +60,44 @@
   white-space: nowrap;
 }
 
+.cart-button {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 20;
+  width: auto;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  border-color: #111827;
+  background: #111827;
+  box-shadow: 0 12px 26px rgba(15, 23, 42, 0.2);
+}
+
+.cart-button svg {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 2;
+}
+
+.cart-button strong {
+  min-width: 24px;
+  min-height: 24px;
+  display: inline-grid;
+  place-items: center;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #f59e0b;
+  color: #111827;
+  font-size: 12px;
+}
+
 .public-layout {
   width: min(100%, 1180px);
   margin: 0 auto;
@@ -63,9 +107,14 @@
   align-items: start;
 }
 
+.public-layout.single {
+  grid-template-columns: 1fr;
+}
+
 .menu-panel,
 .cart-panel,
-.confirmation-panel {
+.confirmation-panel,
+.cart-screen {
   border: 1px solid #dde2e8;
   border-radius: 8px;
   background: #ffffff;
@@ -80,6 +129,26 @@
   position: sticky;
   top: 20px;
   padding: 20px;
+}
+
+.cart-screen {
+  width: min(100%, 780px);
+  margin: 0 auto;
+  padding: 22px;
+}
+
+.cart-screen-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #eef0f3;
+}
+
+.cart-screen-header h2 {
+  margin-bottom: 0;
 }
 
 .confirmation-panel {
@@ -872,9 +941,27 @@ button.compact {
   }
 
   .public-header,
-  .confirmation-panel {
+  .confirmation-panel,
+  .cart-screen-header {
     display: grid;
     padding: 24px;
+  }
+
+  .public-header {
+    padding-top: 76px;
+  }
+
+  .public-actions {
+    align-items: stretch;
+  }
+
+  .cart-button {
+    top: 12px;
+    right: 12px;
+  }
+
+  .cart-button span {
+    display: none;
   }
 
   .public-layout {

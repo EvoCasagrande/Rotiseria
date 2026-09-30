@@ -5,6 +5,7 @@ import type { CartItem, Category, CheckoutForm, Order, OrderType, Product } from
 import { formatPrice } from '../utils'
 
 export function PublicMenuPage() {
+  const [activeView, setActiveView] = useState<'menu' | 'cart'>('menu')
   const [categories, setCategories] = useState<Category[]>([])
   const [products, setProducts] = useState<Product[]>([])
   const [cart, setCart] = useState<CartItem[]>([])
@@ -22,6 +23,11 @@ export function PublicMenuPage() {
 
   const cartTotal = useMemo(
     () => cart.reduce((total, item) => total + Number(item.product.price) * item.quantity, 0),
+    [cart],
+  )
+
+  const cartItemsCount = useMemo(
+    () => cart.reduce((total, item) => total + item.quantity, 0),
     [cart],
   )
 
@@ -137,6 +143,7 @@ export function PublicMenuPage() {
       const data = (await response.json()) as { order: Order }
       setConfirmedOrder(data.order)
       setCart([])
+      setActiveView('menu')
       setCheckout({
         customerName: '',
         customerPhone: '',
@@ -160,9 +167,21 @@ export function PublicMenuPage() {
           <p>Elegi tus productos, revisa el carrito y envia el pedido.</p>
         </div>
 
-        <a className="admin-link" href="/admin">
-          Panel admin
-        </a>
+        <div className="public-actions">
+          <button className="cart-button" onClick={() => setActiveView('cart')} type="button">
+            <svg aria-hidden="true" viewBox="0 0 24 24">
+              <path d="M6.2 6h15.1l-1.8 8.4a2 2 0 0 1-2 1.6H9.1a2 2 0 0 1-2-1.6L5.4 3.8H2.8" />
+              <circle cx="9.5" cy="20" r="1.4" />
+              <circle cx="17.5" cy="20" r="1.4" />
+            </svg>
+            <span>Carrito</span>
+            {cartItemsCount > 0 && <strong>{cartItemsCount}</strong>}
+          </button>
+
+          <a className="admin-link" href="/admin">
+            Panel admin
+          </a>
+        </div>
       </header>
 
       {message && <p className="form-message">{message}</p>}
@@ -191,7 +210,8 @@ export function PublicMenuPage() {
         </section>
       )}
 
-      <div className="public-layout">
+      {activeView === 'menu' ? (
+      <div className="public-layout single">
         <section className="menu-panel" aria-label="Menu">
           <div className="section-heading">
             <h2>Productos</h2>
@@ -237,9 +257,18 @@ export function PublicMenuPage() {
             ))
           )}
         </section>
-
-        <aside className="cart-panel" aria-label="Carrito">
-          <h2>Carrito</h2>
+      </div>
+      ) : (
+        <section className="cart-screen" aria-label="Carrito">
+          <div className="cart-screen-header">
+            <div>
+              <p className="eyebrow dark">Pedido</p>
+              <h2>Carrito</h2>
+            </div>
+            <button className="secondary compact" onClick={() => setActiveView('menu')} type="button">
+              Volver al menu
+            </button>
+          </div>
 
           {cart.length === 0 ? (
             <p className="empty-state">Tu carrito esta vacio.</p>
@@ -331,8 +360,8 @@ export function PublicMenuPage() {
               {submitting ? 'Enviando...' : 'Enviar pedido'}
             </button>
           </form>
-        </aside>
-      </div>
+        </section>
+      )}
     </main>
   )
 }

@@ -12,7 +12,7 @@ import type {
   Product,
   ProductForm,
 } from '../types'
-import { formatPrice, ORDER_STATUSES, TOKEN_KEY } from '../utils'
+import { formatPrice, ORDER_STATUSES, ORDER_STATUS_LABELS, TOKEN_KEY } from '../utils'
 
 export function AdminPage() {
   const [email, setEmail] = useState('admin@rotiseria.com')
@@ -170,7 +170,7 @@ export function AdminPage() {
         }, 20000)
       }
 
-      knownOrderIdsRef.current = nextOrderIds
+      nextOrderIds.forEach((orderId) => knownOrderIdsRef.current.add(orderId))
       hasLoadedOrdersRef.current = true
       setOrders(data.orders)
     } catch (error) {
@@ -733,7 +733,7 @@ export function AdminPage() {
                     <option value="">Todos</option>
                     {ORDER_STATUSES.map((status) => (
                       <option key={status} value={status}>
-                        {status}
+                        {ORDER_STATUS_LABELS[status]}
                       </option>
                     ))}
                   </select>
@@ -782,7 +782,7 @@ export function AdminPage() {
                             <h2>{order.customerName}</h2>
                             {isNewOrder && <span className="new-order-badge">NUEVO</span>}
                             <span className={`status-badge status-${order.status.toLowerCase()}`}>
-                              {order.status}
+                              {ORDER_STATUS_LABELS[order.status]}
                             </span>
                           </div>
                           <p className="order-meta">
@@ -821,7 +821,7 @@ export function AdminPage() {
                         >
                           {ORDER_STATUSES.map((status) => (
                             <option key={status} value={status}>
-                              {status}
+                              {ORDER_STATUS_LABELS[status]}
                             </option>
                           ))}
                         </select>
