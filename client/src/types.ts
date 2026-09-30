@@ -71,6 +71,12 @@ export type ProductForm = {
   categoryId: string
 }
 
+export type ProductFilters = {
+  search: string
+  categoryId: string
+  active: '' | 'true' | 'false'
+}
+
 export type OrderFilters = {
   search: string
   status: '' | OrderStatus

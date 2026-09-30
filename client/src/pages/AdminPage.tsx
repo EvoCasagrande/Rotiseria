@@ -10,6 +10,7 @@ import type {
   OrderFilters,
   OrderStatus,
   Product,
+  ProductFilters,
   ProductForm,
 } from '../types'
 import { formatPrice, ORDER_STATUSES, ORDER_STATUS_LABELS, TOKEN_KEY } from '../utils'
@@ -28,6 +29,11 @@ export function AdminPage() {
   })
   const [categories, setCategories] = useState<Category[]>([])
   const [products, setProducts] = useState<Product[]>([])
+  const [productFilters, setProductFilters] = useState<ProductFilters>({
+    search: '',
+    categoryId: '',
+    active: '',
+  })
   const [newCategoryName, setNewCategoryName] = useState('')
   const [editingCategoryId, setEditingCategoryId] = useState('')
   const [editingCategoryName, setEditingCategoryName] = useState('')
@@ -200,12 +206,27 @@ export function AdminPage() {
     }
   }
 
-  const loadProducts = async () => {
+  const loadProducts = async (filters = productFilters) => {
     setProductsLoading(true)
     setProductsMessage('')
 
     try {
-      const response = await fetch(apiPath('/api/products'))
+      const params = new URLSearchParams()
+
+      if (filters.search.trim()) {
+        params.set('search', filters.search.trim())
+      }
+
+      if (filters.categoryId) {
+        params.set('categoryId', filters.categoryId)
+      }
+
+      if (filters.active) {
+        params.set('active', filters.active)
+      }
+
+      const queryString = params.toString()
+      const response = await fetch(apiPath(`/api/products${queryString ? `?${queryString}` : ''}`))
 
       if (!response.ok) {
         throw new Error(await readError(response))
@@ -227,6 +248,13 @@ export function AdminPage() {
     }))
   }
 
+  const updateProductFilter = (field: keyof ProductFilters, value: string) => {
+    setProductFilters((currentFilters) => ({
+      ...currentFilters,
+      [field]: value,
+    }))
+  }
+
   const applyOrderFilters = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     void loadOrders()
@@ -241,6 +269,22 @@ export function AdminPage() {
 
     setOrderFilters(emptyFilters)
     void loadOrders(token, emptyFilters)
+  }
+
+  const applyProductFilters = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    void loadProducts()
+  }
+
+  const resetProductFilters = () => {
+    const emptyFilters: ProductFilters = {
+      search: '',
+      categoryId: '',
+      active: '',
+    }
+
+    setProductFilters(emptyFilters)
+    void loadProducts(emptyFilters)
   }
 
   useEffect(() => {
@@ -326,6 +370,11 @@ export function AdminPage() {
     hasLoadedOrdersRef.current = false
     setCategories([])
     setProducts([])
+    setProductFilters({
+      search: '',
+      categoryId: '',
+      active: '',
+    })
     setPassword('')
     setMessage('')
     setOrdersMessage('')
@@ -1017,6 +1066,55 @@ export function AdminPage() {
                 <button disabled={productsLoading} type="submit">
                   Crear
                 </button>
+              </form>
+
+              <form className="products-filters" onSubmit={applyProductFilters}>
+                <label>
+                  Buscar
+                  <input
+                    onChange={(event) => updateProductFilter('search', event.target.value)}
+                    placeholder="Producto o descripcion"
+                    value={productFilters.search}
+                  />
+                </label>
+
+                <label>
+                  Categoria
+                  <select
+                    onChange={(event) => updateProductFilter('categoryId', event.target.value)}
+                    value={productFilters.categoryId}
+                  >
+                    <option value="">Todas</option>
+                    {categories.map((category) => (
+                      <option key={category.id} value={category.id}>
+                        {category.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label>
+                  Estado
+                  <select
+                    onChange={(event) =>
+                      updateProductFilter('active', event.target.value as ProductFilters['active'])
+                    }
+                    value={productFilters.active}
+                  >
+                    <option value="">Todos</option>
+                    <option value="true">Activos</option>
+                    <option value="false">Inactivos</option>
+                  </select>
+                </label>
+
+                <div className="filter-actions">
+                  <button disabled={productsLoading} type="submit">
+                    Filtrar
+                  </button>
+                  <button className="secondary" disabled={productsLoading} onClick={resetProductFilters} type="button">
+                    Limpiar
+                  </button>
+                </div>
               </form>
 
               <section className="table-panel" aria-label="Lista de productos">
