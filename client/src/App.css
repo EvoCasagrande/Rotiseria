@@ -1073,10 +1073,14 @@ button.compact {
   }
 
   .public-header,
-  .confirmation-panel,
-  .cart-screen-header {
+  .confirmation-panel {
     display: grid;
     padding: 24px;
+  }
+
+  .cart-screen-header {
+    display: flex;
+    align-items: flex-start;
   }
 
   .public-header {
