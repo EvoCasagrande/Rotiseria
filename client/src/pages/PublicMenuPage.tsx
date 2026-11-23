@@ -21,7 +21,12 @@ export function PublicMenuPage() {
   const [message, setMessage] = useState('')
   const [confirmedOrder, setConfirmedOrder] = useState<Order | null>(null)
   const [recentlyAddedProductId, setRecentlyAddedProductId] = useState('')
+  const [search, setSearch] = useState('')
+  const [categoryFilter, setCategoryFilter] = useState('')
+  const [activeCategory, setActiveCategory] = useState('')
+  const [announcement, setAnnouncement] = useState('')
   const confirmationRef = useRef<HTMLElement | null>(null)
+  const cartRef = useRef<HTMLElement | null>(null)
 
   const cartTotal = useMemo(
     () => cart.reduce((total, item) => total + Number(item.product.price) * item.quantity, 0),
@@ -34,11 +39,12 @@ export function PublicMenuPage() {
   )
 
   const productsByCategory = useMemo(() => {
-    return categories.map((category) => ({
+    const term = search.trim().toLocaleLowerCase()
+    return categories.filter((category) => !categoryFilter || category.id === categoryFilter).map((category) => ({
       category,
-      products: products.filter((product) => product.categoryId === category.id),
-    }))
-  }, [categories, products])
+      products: products.filter((product) => product.categoryId === category.id && (!term || `${product.name} ${product.description ?? ''}`.toLocaleLowerCase().includes(term))),
+    })).filter(({ products: items }) => items.length > 0)
+  }, [categories, products, search, categoryFilter])
 
   const hasVisibleProducts = productsByCategory.some(
     ({ products: categoryProducts }) => categoryProducts.length > 0,
@@ -78,6 +84,24 @@ export function PublicMenuPage() {
   }, [])
 
   useEffect(() => {
+    if (activeView !== 'menu' || !hasVisibleProducts) return
+    const sections = Array.from(document.querySelectorAll<HTMLElement>('.menu-category'))
+    const sync = () => {
+      const current = sections.filter((section) => section.getBoundingClientRect().top <= 160).at(-1) ?? sections[0]
+      if (current) setActiveCategory(current.id.replace('category-', ''))
+    }
+    const observer = new IntersectionObserver(sync, { rootMargin: '-120px 0px -65% 0px', threshold: 0 })
+    sections.forEach((section) => observer.observe(section))
+    window.addEventListener('scrollend', sync)
+    sync()
+    return () => { observer.disconnect(); window.removeEventListener('scrollend', sync) }
+  }, [activeView, productsByCategory, hasVisibleProducts])
+
+  useEffect(() => {
+    if (activeView === 'cart') cartRef.current?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' })
+  }, [activeView])
+
+  useEffect(() => {
     if (!confirmedOrder) {
       return
     }
@@ -92,6 +116,7 @@ export function PublicMenuPage() {
 
   const addToCart = (product: Product) => {
     setConfirmedOrder(null)
+    setAnnouncement(`${product.name} agregado al pedido`)
     setRecentlyAddedProductId(product.id)
     window.setTimeout(() => {
       setRecentlyAddedProductId((currentProductId) =>
@@ -195,14 +220,14 @@ export function PublicMenuPage() {
           </button>
         </div>
       </nav>
-      <header className="public-header">
+      {activeView === 'menu' && <header className="public-header">
         <div>
           <h1>Comer bien, compartir mejor.</h1>
           <p>Tu comida favorita, lista para compartir.</p>
           <a className="hero-link" href="#menu" onClick={() => setActiveView('menu')}>Explorar el menu <span aria-hidden="true">↗</span></a>
         </div>
 
-      </header>
+      </header>}
 
       {message && <p className="form-message" role="alert">{message}</p>}
 
@@ -245,16 +270,20 @@ export function PublicMenuPage() {
             </button>
           </div>
 
+          <div className="menu-tools">
+            <label>Buscar en el menu<input type="search" placeholder="Buscar producto" value={search} onChange={(event) => setSearch(event.target.value)} /></label>
+            <label>Categoria<select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)}><option value="">Todas las categorias</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label>
+          </div>
           {hasVisibleProducts && <nav className="category-nav" aria-label="Categorias del menu">
-            {productsByCategory.filter(({ products: items }) => items.length > 0).map(({ category }) => <a href={`#category-${category.id}`} key={category.id}>{category.name}</a>)}
+            {productsByCategory.map(({ category }) => <a className={activeCategory === category.id ? 'target-current' : undefined} aria-current={activeCategory === category.id ? 'true' : undefined} href={`#category-${category.id}`} key={category.id}>{category.name}</a>)}
           </nav>}
-          {message && !hasVisibleProducts ? null : productsByCategory.length === 0 && !loading ? (
-            <p className="empty-state">Todavia no hay productos disponibles.</p>
-          ) : !hasVisibleProducts && !loading ? (
-            <p className="empty-state">Todavia no hay productos disponibles.</p>
+          {loading && products.length === 0 ? (
+            <div className="menu-skeleton" role="status"><span className="sr-only">Cargando menu</span>{[1, 2, 3, 4].map((item) => <div key={item} aria-hidden="true"><i /><i /><i /></div>)}</div>
+          ) : message && !hasVisibleProducts ? null : !hasVisibleProducts ? (
+            <div className="menu-empty"><h3>{search || categoryFilter ? 'No encontramos productos' : 'El menu todavia esta vacio'}</h3><p>{search || categoryFilter ? 'Proba otra busqueda o consulta todas las categorias.' : 'Volvene a pasar pronto para conocer las opciones disponibles.'}</p>{(search || categoryFilter) && <button className="secondary compact" type="button" onClick={() => { setSearch(''); setCategoryFilter('') }}>Limpiar filtros</button>}</div>
           ) : (
             productsByCategory.map(({ category, products: categoryProducts }) => (
-              <section className="menu-category" id={`category-${category.id}`} key={category.id}>
+              <section className="menu-category" id={`category-${category.id}`} tabIndex={-1} key={category.id}>
                 <h3>{category.name}</h3>
 
                 {categoryProducts.length === 0 ? (
@@ -277,6 +306,7 @@ export function PublicMenuPage() {
                                 : 'compact'
                             }
                             onClick={() => addToCart(product)}
+                            aria-label={`Agregar ${product.name} al pedido`}
                             type="button"
                           >
                             {recentlyAddedProductId === product.id ? 'Agregado' : 'Agregar'}
@@ -292,7 +322,7 @@ export function PublicMenuPage() {
         </section>
       </div>
       ) : (
-        <section className="cart-screen" aria-label="Carrito">
+        <section className="cart-screen" ref={cartRef} aria-label="Carrito">
           <div className="cart-screen-header">
             <div>
               <p className="eyebrow dark">Pedido</p>
@@ -329,6 +359,7 @@ export function PublicMenuPage() {
                   <div className="quantity-control">
                     <button
                       className="secondary"
+                      aria-label={`Quitar una unidad de ${item.product.name}`}
                       onClick={() => updateCartQuantity(item.product.id, item.quantity - 1)}
                       type="button"
                     >
@@ -337,6 +368,7 @@ export function PublicMenuPage() {
                     <span>{item.quantity}</span>
                     <button
                       className="secondary"
+                      aria-label={`Agregar una unidad de ${item.product.name}`}
                       onClick={() => updateCartQuantity(item.product.id, item.quantity + 1)}
                       type="button"
                     >
@@ -353,13 +385,14 @@ export function PublicMenuPage() {
             <strong>{formatPrice(cartTotal)}</strong>
           </div>
 
-          <form className="checkout-form" onSubmit={createOrder}>
+          {cart.length > 0 && <form className="checkout-form" onSubmit={createOrder}>
             <section className="checkout-section">
               <h3>Datos del cliente</h3>
               <label>
                 Nombre
                 <input
                   autoComplete="name"
+                  required minLength={2} maxLength={50}
                   onChange={(event) => updateCheckoutField('customerName', event.target.value)}
                   value={checkout.customerName}
                 />
@@ -369,6 +402,7 @@ export function PublicMenuPage() {
                 Telefono
                 <input
                   autoComplete="tel"
+                  required minLength={6} maxLength={30}
                   inputMode="tel"
                   onChange={(event) => updateCheckoutField('customerPhone', event.target.value)}
                   value={checkout.customerPhone}
@@ -394,6 +428,7 @@ export function PublicMenuPage() {
                   Direccion
                   <input
                     autoComplete="street-address"
+                    required
                     onChange={(event) => updateCheckoutField('address', event.target.value)}
                     value={checkout.address}
                   />
@@ -411,11 +446,13 @@ export function PublicMenuPage() {
             </section>
 
             <button disabled={submitting || cart.length === 0} type="submit">
-              {submitting ? 'Enviando...' : 'Enviar pedido'}
+              {submitting ? 'Enviando...' : `Confirmar pedido · ${formatPrice(cartTotal)}`}
             </button>
-          </form>
+          </form>}
         </section>
       )}
+      <div className="sr-only" aria-live="polite" aria-atomic="true">{announcement}</div>
+      {activeView === 'menu' && cartItemsCount > 0 && <button className="mobile-cart" type="button" onClick={() => setActiveView('cart')}><span>Ver pedido ({cartItemsCount})</span><strong>{formatPrice(cartTotal)}</strong></button>}
     </main>
   )
 }
