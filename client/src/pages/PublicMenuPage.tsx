@@ -189,21 +189,10 @@ export function PublicMenuPage() {
       <header className="public-header">
         <div>
           <p className="eyebrow dark">Rotiseria</p>
-          <h1>Menu del dia</h1>
-          <p>Elegi tus productos, revisa el carrito y envia el pedido.</p>
+          <h1>Algo rico te espera.</h1>
+          <p>Elegi tus favoritos y hacenos tu pedido en unos minutos.</p>
         </div>
 
-        <div className="public-actions">
-          <button className="cart-button" onClick={() => setActiveView('cart')} type="button">
-            <svg aria-hidden="true" viewBox="0 0 24 24">
-              <path d="M6.2 6h15.1l-1.8 8.4a2 2 0 0 1-2 1.6H9.1a2 2 0 0 1-2-1.6L5.4 3.8H2.8" />
-              <circle cx="9.5" cy="20" r="1.4" />
-              <circle cx="17.5" cy="20" r="1.4" />
-            </svg>
-            <span>Carrito</span>
-            {cartItemsCount > 0 && <strong>{cartItemsCount}</strong>}
-          </button>
-        </div>
       </header>
 
       {message && <p className="form-message">{message}</p>}
@@ -236,7 +225,7 @@ export function PublicMenuPage() {
       <div className="public-layout single">
         <section className="menu-panel" aria-label="Menu">
           <div className="section-heading">
-            <h2>Productos</h2>
+            <div><h2>Nuestro menu</h2><p>Encontra algo para disfrutar hoy.</p></div>
             <button
               className="secondary compact"
               disabled={loading}
@@ -247,13 +236,16 @@ export function PublicMenuPage() {
             </button>
           </div>
 
+          {hasVisibleProducts && <nav className="category-nav" aria-label="Categorias del menu">
+            {productsByCategory.filter(({ products: items }) => items.length > 0).map(({ category }) => <a href={`#category-${category.id}`} key={category.id}>{category.name}</a>)}
+          </nav>}
           {productsByCategory.length === 0 && !loading ? (
             <p className="empty-state">Todavia no hay productos disponibles.</p>
           ) : !hasVisibleProducts && !loading ? (
             <p className="empty-state">Todavia no hay productos disponibles.</p>
           ) : (
             productsByCategory.map(({ category, products: categoryProducts }) => (
-              <section className="menu-category" key={category.id}>
+              <section className="menu-category" id={`category-${category.id}`} key={category.id}>
                 <h3>{category.name}</h3>
 
                 {categoryProducts.length === 0 ? (
@@ -315,7 +307,7 @@ export function PublicMenuPage() {
           </div>
 
           {cart.length === 0 ? (
-            <p className="empty-state">Tu carrito esta vacio.</p>
+            <div className="cart-empty"><p>Tu carrito esta vacio.</p><button className="secondary" onClick={() => setActiveView('menu')} type="button">Explorar el menu</button></div>
           ) : (
             <ul className="cart-list">
               {cart.map((item) => (
@@ -358,6 +350,7 @@ export function PublicMenuPage() {
               <label>
                 Nombre
                 <input
+                  autoComplete="name"
                   onChange={(event) => updateCheckoutField('customerName', event.target.value)}
                   value={checkout.customerName}
                 />
@@ -366,6 +359,7 @@ export function PublicMenuPage() {
               <label>
                 Telefono
                 <input
+                  autoComplete="tel"
                   inputMode="tel"
                   onChange={(event) => updateCheckoutField('customerPhone', event.target.value)}
                   value={checkout.customerPhone}
@@ -390,6 +384,7 @@ export function PublicMenuPage() {
                 <label>
                   Direccion
                   <input
+                    autoComplete="street-address"
                     onChange={(event) => updateCheckoutField('address', event.target.value)}
                     value={checkout.address}
                   />

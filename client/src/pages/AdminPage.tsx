@@ -705,6 +705,7 @@ export function AdminPage() {
 
           <nav className="admin-nav" aria-label="Secciones del panel">
             <button
+              aria-current={activeSection === 'orders' ? 'page' : undefined}
               className={activeSection === 'orders' ? 'nav-button active' : 'nav-button'}
               onClick={() => setActiveSection('orders')}
               type="button"
@@ -712,6 +713,7 @@ export function AdminPage() {
               Pedidos
             </button>
             <button
+              aria-current={activeSection === 'categories' ? 'page' : undefined}
               className={activeSection === 'categories' ? 'nav-button active' : 'nav-button'}
               onClick={() => setActiveSection('categories')}
               type="button"
@@ -719,6 +721,7 @@ export function AdminPage() {
               Categorias
             </button>
             <button
+              aria-current={activeSection === 'products' ? 'page' : undefined}
               className={activeSection === 'products' ? 'nav-button active' : 'nav-button'}
               onClick={() => setActiveSection('products')}
               type="button"
@@ -749,7 +752,7 @@ export function AdminPage() {
                 </div>
 
                 <div className="header-actions">
-                  <button disabled={loading} onClick={() => void loadSession()} type="button">
+                  <button className="secondary" disabled={loading} onClick={() => void loadSession()} type="button">
                     {loading ? 'Validando...' : 'Validar sesion'}
                   </button>
                   <button disabled={ordersLoading} onClick={() => void loadOrders()} type="button">
@@ -944,7 +947,7 @@ export function AdminPage() {
                       <span
                         className={category.active ? 'status-badge status-ready' : 'status-badge status-cancelled'}
                       >
-                        {category.active ? 'ACTIVA' : 'INACTIVA'}
+                        {category.active ? 'Activa' : 'Inactiva'}
                       </span>
 
                       <div className="row-actions">
@@ -1189,7 +1192,7 @@ export function AdminPage() {
                       <span
                         className={product.active ? 'status-badge status-ready' : 'status-badge status-cancelled'}
                       >
-                        {product.active ? 'ACTIVO' : 'INACTIVO'}
+                        {product.active ? 'Activo' : 'Inactivo'}
                       </span>
 
                       <div className="row-actions">
@@ -1268,7 +1271,7 @@ export function AdminPage() {
         <form className="login-form" onSubmit={handleLogin}>
           <div className="form-header">
             <h2>Ingresar</h2>
-            <p>Usa el usuario admin creado con el seed.</p>
+            <p>Ingresa tus datos para administrar la rotiseria.</p>
           </div>
 
           <label>
