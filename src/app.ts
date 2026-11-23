@@ -15,6 +15,10 @@ const allowedOrigins = process.env.CORS_ORIGIN
     .map((origin) => origin.trim())
     .filter(Boolean) ?? []
 
+if (process.env.NODE_ENV === 'production' && allowedOrigins.length === 0) {
+    throw new Error('CORS_ORIGIN debe indicar los origenes permitidos en produccion')
+}
+
 app.use(cors({
     origin: (origin, callback) => {
         if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {

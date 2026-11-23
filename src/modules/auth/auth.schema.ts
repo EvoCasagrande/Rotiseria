@@ -23,3 +23,11 @@ export const loginSchema = z.object({
 });
 
 export type LoginInput = z.infer<typeof loginSchema>['body']
+
+export const changePasswordSchema = z.object({
+    body: z.object({
+        currentPassword: z.string().min(1).refine((value) => Buffer.byteLength(value, 'utf-8') <= 72),
+        newPassword: z.string().min(8, 'La nueva contrasena debe tener al menos 8 caracteres').refine((value) => Buffer.byteLength(value, 'utf-8') <= 72, 'La contrasena no debe superar 72 bytes'),
+    }).refine((value) => value.currentPassword !== value.newPassword, { message: 'La nueva contrasena debe ser distinta', path: ['newPassword'] }),
+})
+export type ChangePasswordInput = z.infer<typeof changePasswordSchema>['body']

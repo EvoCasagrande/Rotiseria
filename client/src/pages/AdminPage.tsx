@@ -15,6 +15,7 @@ import type {
 } from '../types'
 import { formatPrice, ORDER_STATUSES, ORDER_STATUS_LABELS, TOKEN_KEY } from '../utils'
 import { StatisticsPanel } from './StatisticsPanel'
+import { SecurityPanel } from './SecurityPanel'
 
 export function AdminPage() {
   const [email, setEmail] = useState('admin@rotiseria.com')
@@ -23,11 +24,15 @@ export function AdminPage() {
   const [admin, setAdmin] = useState<Admin | null>(null)
   const [activeSection, setActiveSection] = useState<AdminSection>('orders')
   const [orders, setOrders] = useState<Order[]>([])
+  const [onlyActiveOrders, setOnlyActiveOrders] = useState(true)
   const [orderFilters, setOrderFilters] = useState<OrderFilters>({
     search: '',
     status: '',
     orderType: '',
+    from: '',
+    to: '',
   })
+  const [appliedOrderFilters, setAppliedOrderFilters] = useState<OrderFilters>(orderFilters)
   const [categories, setCategories] = useState<Category[]>([])
   const [products, setProducts] = useState<Product[]>([])
   const [productFilters, setProductFilters] = useState<ProductFilters>({
@@ -41,6 +46,7 @@ export function AdminPage() {
   const [newProduct, setNewProduct] = useState<ProductForm>({
     name: '',
     description: '',
+    imageUrl: '',
     price: '',
     categoryId: '',
   })
@@ -48,11 +54,13 @@ export function AdminPage() {
   const [editingProduct, setEditingProduct] = useState<ProductForm>({
     name: '',
     description: '',
+    imageUrl: '',
     price: '',
     categoryId: '',
   })
   const [loading, setLoading] = useState(false)
   const [ordersLoading, setOrdersLoading] = useState(false)
+  const [updatingOrderId, setUpdatingOrderId] = useState('')
   const [categoriesLoading, setCategoriesLoading] = useState(false)
   const [productsLoading, setProductsLoading] = useState(false)
   const [message, setMessage] = useState('')
@@ -126,7 +134,7 @@ export function AdminPage() {
     }
   }
 
-  const loadOrders = async (currentToken = token, filters = orderFilters) => {
+  const loadOrders = async (currentToken = token, filters = appliedOrderFilters) => {
     if (!currentToken) {
       return
     }
@@ -148,6 +156,12 @@ export function AdminPage() {
       if (filters.orderType) {
         params.set('orderType', filters.orderType)
       }
+      if (filters.from) params.set('from', new Date(`${filters.from}T00:00:00`).toISOString())
+      if (filters.to) {
+        const nextDay = new Date(`${filters.to}T00:00:00`)
+        nextDay.setDate(nextDay.getDate() + 1)
+        params.set('to', nextDay.toISOString())
+      }
 
       const queryString = params.toString()
       const response = await fetch(apiPath(`/api/orders${queryString ? `?${queryString}` : ''}`), {
@@ -161,24 +175,6 @@ export function AdminPage() {
       }
 
       const data = (await response.json()) as { orders: Order[] }
-      const nextOrderIds = new Set(data.orders.map((order) => order.id))
-      const newOrderIds = data.orders
-        .filter((order) => !knownOrderIdsRef.current.has(order.id))
-        .map((order) => order.id)
-
-      if (hasLoadedOrdersRef.current && newOrderIds.length > 0) {
-        setHighlightedOrderIds((currentIds) => [...new Set([...newOrderIds, ...currentIds])])
-        playNewOrderSound()
-
-        window.setTimeout(() => {
-          setHighlightedOrderIds((currentIds) =>
-            currentIds.filter((orderId) => !newOrderIds.includes(orderId)),
-          )
-        }, 20000)
-      }
-
-      nextOrderIds.forEach((orderId) => knownOrderIdsRef.current.add(orderId))
-      hasLoadedOrdersRef.current = true
       setOrders(data.orders)
     } catch (error) {
       setOrdersMessage(error instanceof Error ? error.message : 'No se pudieron cargar pedidos')
@@ -243,6 +239,7 @@ export function AdminPage() {
   }
 
   const updateOrderFilter = (field: keyof OrderFilters, value: string) => {
+    if (field === 'status' && (value === 'COMPLETED' || value === 'CANCELLED')) setOnlyActiveOrders(false)
     setOrderFilters((currentFilters) => ({
       ...currentFilters,
       [field]: value,
@@ -258,7 +255,9 @@ export function AdminPage() {
 
   const applyOrderFilters = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    void loadOrders()
+    if (orderFilters.from && orderFilters.to && orderFilters.from > orderFilters.to) { setOrdersMessage('La fecha inicial debe ser anterior a la fecha final'); return }
+    setAppliedOrderFilters(orderFilters)
+    void loadOrders(token, orderFilters)
   }
 
   const resetOrderFilters = () => {
@@ -266,9 +265,12 @@ export function AdminPage() {
       search: '',
       status: '',
       orderType: '',
+      from: '',
+      to: '',
     }
 
     setOrderFilters(emptyFilters)
+    setAppliedOrderFilters(emptyFilters)
     void loadOrders(token, emptyFilters)
   }
 
@@ -303,6 +305,33 @@ export function AdminPage() {
   }, [admin, token])
 
   useEffect(() => {
+    if (!token || !admin) return
+    let cancelled = false
+    let running = false
+    const check = async () => {
+      if (running) return
+      running = true
+      try {
+        const response = await fetch(apiPath('/api/orders'), { headers: { Authorization: `Bearer ${token}` } })
+        if (!response.ok) return
+        const data = (await response.json()) as { orders: Order[] }
+        if (cancelled) return
+        const newIds = data.orders.filter((order) => !knownOrderIdsRef.current.has(order.id)).map((order) => order.id)
+        if (hasLoadedOrdersRef.current && newIds.length) {
+          setHighlightedOrderIds((current) => [...new Set([...newIds, ...current])])
+          playNewOrderSound()
+        }
+        data.orders.forEach((order) => knownOrderIdsRef.current.add(order.id))
+        hasLoadedOrdersRef.current = true
+      } catch { /* The orders view reports connection errors on its own. */ }
+      finally { running = false }
+    }
+    void check()
+    const intervalId = window.setInterval(() => void check(), 10000)
+    return () => { cancelled = true; window.clearInterval(intervalId) }
+  }, [admin, token])
+
+  useEffect(() => {
     if (!token || !admin || activeSection !== 'orders') {
       return
     }
@@ -314,7 +343,7 @@ export function AdminPage() {
     return () => window.clearInterval(intervalId)
     // Keeps the orders panel fresh without polling other admin sections.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeSection, admin, token, orderFilters])
+  }, [activeSection, admin, token, appliedOrderFilters])
 
   useEffect(() => {
     if (admin && activeSection === 'categories') {
@@ -384,7 +413,9 @@ export function AdminPage() {
   }
 
   const updateOrderStatus = async (orderId: string, status: OrderStatus) => {
+    if (status === 'CANCELLED' && !window.confirm('¿Cancelar este pedido? Esta accion no se puede deshacer.')) return
     setOrdersMessage('')
+    setUpdatingOrderId(orderId)
 
     try {
       const response = await fetch(apiPath(`/api/orders/${orderId}/status`), {
@@ -406,6 +437,8 @@ export function AdminPage() {
       )
     } catch (error) {
       setOrdersMessage(error instanceof Error ? error.message : 'No se pudo actualizar el pedido')
+    } finally {
+      setUpdatingOrderId('')
     }
   }
 
@@ -556,6 +589,7 @@ export function AdminPage() {
     const payload = {
       name: form.name.trim(),
       description: form.description.trim() || undefined,
+      imageUrl: form.imageUrl.trim() || null,
       price: Number(form.price),
       categoryId: form.categoryId,
     }
@@ -588,7 +622,7 @@ export function AdminPage() {
         throw new Error(await readError(response))
       }
 
-      setNewProduct({ name: '', description: '', price: '', categoryId: '' })
+      setNewProduct({ name: '', description: '', imageUrl: '', price: '', categoryId: '' })
       await loadProducts()
     } catch (error) {
       setProductsMessage(error instanceof Error ? error.message : 'No se pudo crear el producto')
@@ -602,6 +636,7 @@ export function AdminPage() {
     setEditingProduct({
       name: product.name,
       description: product.description ?? '',
+      imageUrl: product.imageUrl ?? '',
       price: product.price,
       categoryId: product.categoryId,
     })
@@ -610,7 +645,7 @@ export function AdminPage() {
 
   const cancelEditingProduct = () => {
     setEditingProductId('')
-    setEditingProduct({ name: '', description: '', price: '', categoryId: '' })
+    setEditingProduct({ name: '', description: '', imageUrl: '', price: '', categoryId: '' })
   }
 
   const updateProduct = async (productId: string) => {
@@ -706,13 +741,14 @@ export function AdminPage() {
 
           <nav className="admin-nav" aria-label="Secciones del panel">
             <button aria-current={activeSection === 'statistics' ? 'page' : undefined} className={activeSection === 'statistics' ? 'nav-button active' : 'nav-button'} onClick={() => setActiveSection('statistics')} type="button">Estadisticas</button>
+            <button aria-current={activeSection === 'security' ? 'page' : undefined} className={activeSection === 'security' ? 'nav-button active' : 'nav-button'} onClick={() => setActiveSection('security')} type="button">Seguridad</button>
             <button
               aria-current={activeSection === 'orders' ? 'page' : undefined}
               className={activeSection === 'orders' ? 'nav-button active' : 'nav-button'}
-              onClick={() => setActiveSection('orders')}
+              onClick={() => { setActiveSection('orders'); setHighlightedOrderIds([]) }}
               type="button"
             >
-              Pedidos
+              Pedidos {highlightedOrderIds.length > 0 && `(${highlightedOrderIds.length} nuevos)`}
             </button>
             <button
               aria-current={activeSection === 'categories' ? 'page' : undefined}
@@ -745,6 +781,7 @@ export function AdminPage() {
 
         <section className="admin-content">
           {activeSection === 'statistics' && <StatisticsPanel token={token} />}
+          {activeSection === 'security' && <SecurityPanel token={token} onChanged={() => { handleLogout(); setMessage('Contrasena actualizada. Inicia sesion nuevamente.') }} />}
           {activeSection === 'orders' && (
             <div className="dashboard">
               <header className="dashboard-header">
@@ -772,7 +809,7 @@ export function AdminPage() {
                   Buscar
                   <input
                     onChange={(event) => updateOrderFilter('search', event.target.value)}
-                    placeholder="Cliente o telefono"
+                    placeholder="Cliente, telefono o numero de pedido"
                     value={orderFilters.search}
                   />
                 </label>
@@ -808,6 +845,8 @@ export function AdminPage() {
                   </select>
                 </label>
 
+                <label>Desde<input type="date" value={orderFilters.from} onChange={(event) => updateOrderFilter('from', event.target.value)} /></label>
+                <label>Hasta<input type="date" value={orderFilters.to} onChange={(event) => updateOrderFilter('to', event.target.value)} /></label>
                 <div className="filter-actions">
                   <button disabled={ordersLoading} type="submit">
                     Filtrar
@@ -819,15 +858,18 @@ export function AdminPage() {
               </form>
 
               <div className="orders-toolbar">
-                <span>{orders.length} pedidos</span>
+                <span>{orders.filter((order) => !onlyActiveOrders || (order.status !== 'COMPLETED' && order.status !== 'CANCELLED')).length} pedidos</span>
+                <label className="active-orders-toggle"><input type="checkbox" checked={onlyActiveOrders} onChange={(event) => setOnlyActiveOrders(event.target.checked)} />Solo pedidos activos</label>
               </div>
 
               <section className="orders-list" aria-label="Lista de pedidos">
-                {orders.length === 0 && !ordersLoading ? (
-                  <p className="empty-state">Todavia no hay pedidos para mostrar.</p>
+                {orders.filter((order) => !onlyActiveOrders || (order.status !== 'COMPLETED' && order.status !== 'CANCELLED')).length === 0 && !ordersLoading ? (
+                  <p className="empty-state">No hay pedidos para mostrar. Desactiva el filtro de activos para ver el historial.</p>
                 ) : (
-                  orders.map((order) => {
+                  orders.filter((order) => !onlyActiveOrders || (order.status !== 'COMPLETED' && order.status !== 'CANCELLED')).map((order) => {
                     const isNewOrder = highlightedOrderIds.includes(order.id)
+                    const nextStatus: Partial<Record<OrderStatus, OrderStatus>> = { PENDING: 'CONFIRMED', CONFIRMED: 'PREPARING', PREPARING: 'READY', READY: 'COMPLETED' }
+                    const next = nextStatus[order.status]
 
                     return (
                     <article className={isNewOrder ? 'order-card new-order' : 'order-card'} key={order.id}>
@@ -841,6 +883,7 @@ export function AdminPage() {
                             </span>
                           </div>
                           <p className="order-meta">
+                            Pedido {order.id} ·{' '}
                             {order.customerPhone} -{' '}
                             {order.orderType === 'DELIVERY' ? 'Envio' : 'Retiro'} -{' '}
                             {new Date(order.createdAt).toLocaleString()}
@@ -861,7 +904,7 @@ export function AdminPage() {
                             <span>
                               {item.quantity} x {item.product.name}
                             </span>
-                            <strong>{formatPrice(item.unitPrice)}</strong>
+                            <strong>{formatPrice(Number(item.unitPrice) * item.quantity)} <small>({formatPrice(item.unitPrice)} c/u)</small></strong>
                           </li>
                         ))}
                       </ul>
@@ -869,6 +912,7 @@ export function AdminPage() {
                       <label className="status-control">
                         Estado
                         <select
+                          disabled={Boolean(updatingOrderId) || order.status === 'COMPLETED' || order.status === 'CANCELLED'}
                           onChange={(event) =>
                             void updateOrderStatus(order.id, event.target.value as OrderStatus)
                           }
@@ -881,6 +925,7 @@ export function AdminPage() {
                           ))}
                         </select>
                       </label>
+                      {next && <div className="order-quick-actions"><button type="button" disabled={Boolean(updatingOrderId)} onClick={() => void updateOrderStatus(order.id, next)}>{updatingOrderId === order.id ? 'Actualizando...' : `Cambiar a ${ORDER_STATUS_LABELS[next]}`}</button><button className="danger" type="button" disabled={Boolean(updatingOrderId)} onClick={() => void updateOrderStatus(order.id, 'CANCELLED')}>Cancelar pedido</button></div>}
                     </article>
                     )
                   })
@@ -1041,6 +1086,8 @@ export function AdminPage() {
                   />
                 </label>
 
+                <label>URL de imagen (opcional)<input type="url" placeholder="https://..." onChange={(event) => updateNewProductField('imageUrl', event.target.value)} value={newProduct.imageUrl} /></label>
+
                 <label>
                   Precio
                   <input
@@ -1048,6 +1095,7 @@ export function AdminPage() {
                     onChange={(event) => updateNewProductField('price', event.target.value)}
                     placeholder="8000"
                     type="number"
+                    min="0.01" step="0.01"
                     value={newProduct.price}
                   />
                 </label>
@@ -1151,6 +1199,7 @@ export function AdminPage() {
                               placeholder="Descripcion"
                               value={editingProduct.description}
                             />
+                            <input type="url" aria-label={`URL de imagen de ${product.name}`} placeholder="URL de imagen" onChange={(event) => updateEditingProductField('imageUrl', event.target.value)} value={editingProduct.imageUrl} />
                           </>
                         ) : (
                           <>
@@ -1185,6 +1234,7 @@ export function AdminPage() {
                             inputMode="decimal"
                             onChange={(event) => updateEditingProductField('price', event.target.value)}
                             type="number"
+                            min="0.01" step="0.01"
                             value={editingProduct.price}
                           />
                         ) : (

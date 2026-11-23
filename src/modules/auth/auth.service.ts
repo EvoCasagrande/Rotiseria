@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs"
 import { prisma } from "../../lib/prisma.js"
 import { AppError } from "../../utils/AppError.js"
-import type { LoginInput } from "./auth.schema.js"
+import type { ChangePasswordInput, LoginInput } from "./auth.schema.js"
 import jwt from "jsonwebtoken"
 import { jwtSecret } from "../../config/env.js"
 
@@ -19,7 +19,7 @@ export class AuthService {
             }
         })
 
-        if (!admin || !admin.active) {
+        if (!admin || !admin.active || (payload.tokenVersion ?? 0) !== admin.tokenVersion) {
             throw new AppError('Usuario no autorizado', 401)
         }
 
@@ -48,7 +48,7 @@ export class AuthService {
             throw new AppError('Usuario o contrasena incorrectos', 401)
         }
 
-        const token = jwt.sign({ id: admin.id }, jwtSecret, {
+        const token = jwt.sign({ id: admin.id, tokenVersion: admin.tokenVersion }, jwtSecret, {
             expiresIn: '12h'
         })
 
@@ -65,5 +65,15 @@ export class AuthService {
         }
 
         return adminWithToken
+    }
+
+    changePassword = async (id: string, data: ChangePasswordInput): Promise<void> => {
+        const admin = await prisma.adminUser.findUnique({ where: { id } })
+        if (!admin || !admin.active || !(await bcrypt.compare(data.currentPassword, admin.passwordHash))) {
+            throw new AppError('La contrasena actual no es correcta', 401)
+        }
+        const passwordHash = await bcrypt.hash(data.newPassword, 10)
+        const result = await prisma.adminUser.updateMany({ where: { id, passwordHash: admin.passwordHash }, data: { passwordHash, tokenVersion: { increment: 1 } } })
+        if (!result.count) throw new AppError('La contrasena cambio en otra sesion. Inicia sesion nuevamente.', 409)
     }
 }

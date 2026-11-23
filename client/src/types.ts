@@ -54,6 +54,7 @@ export type Product = {
   id: string
   name: string
   description: string | null
+  imageUrl?: string | null
   price: string
   active: boolean
   categoryId: string
@@ -67,6 +68,7 @@ export type Product = {
 export type ProductForm = {
   name: string
   description: string
+  imageUrl: string
   price: string
   categoryId: string
 }
@@ -81,6 +83,8 @@ export type OrderFilters = {
   search: string
   status: '' | OrderStatus
   orderType: '' | OrderType
+  from: string
+  to: string
 }
 
 export type CheckoutForm = {
@@ -96,4 +100,4 @@ export type CartItem = {
   quantity: number
 }
 
-export type AdminSection = 'orders' | 'categories' | 'products' | 'statistics'
+export type AdminSection = 'orders' | 'categories' | 'products' | 'statistics' | 'security'

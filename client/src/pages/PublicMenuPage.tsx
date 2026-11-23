@@ -7,6 +7,7 @@ import { parseSavedCart, restoreCart } from '../cart'
 import type { SavedItem } from '../cart'
 
 const CART_KEY = 'rotiseria.cart.v1'
+const ATTEMPT_KEY = 'rotiseria.order-attempt.v1'
 function readSavedCart(): SavedItem[] {
   try {
     return parseSavedCart(localStorage.getItem(CART_KEY))
@@ -40,6 +41,7 @@ export function PublicMenuPage() {
   const [announcement, setAnnouncement] = useState('')
   const confirmationRef = useRef<HTMLElement | null>(null)
   const cartRef = useRef<HTMLElement | null>(null)
+  const attemptRef = useRef<{ fingerprint: string; requestId: string } | null>(null)
 
   const cartTotal = useMemo(
     () => cart.reduce((total, item) => total + Number(item.product.price) * item.quantity, 0),
@@ -154,7 +156,7 @@ export function PublicMenuPage() {
 
       if (existingItem) {
         return currentCart.map((item) =>
-          item.product.id === product.id ? { ...item, quantity: item.quantity + 1 } : item,
+          item.product.id === product.id ? { ...item, quantity: Math.min(999, item.quantity + 1) } : item,
         )
       }
 
@@ -196,19 +198,6 @@ export function PublicMenuPage() {
         throw new Error('Agrega al menos un producto al carrito')
       }
 
-      const latestResponse = await fetch(apiPath('/api/products?active=true'))
-      if (!latestResponse.ok) throw new Error(await readError(latestResponse))
-      const latestData = (await latestResponse.json()) as { products: Product[] }
-      const available = new Map(latestData.products.map((product) => [product.id, product]))
-      const updated = cart.flatMap((item) => {
-        const product = available.get(item.product.id)
-        return product ? [{ product, quantity: item.quantity }] : []
-      })
-      if (updated.length !== cart.length || updated.some((item, index) => item.product.price !== cart[index].product.price)) {
-        setCart(updated)
-        throw new Error('El menu cambio. Revisa la disponibilidad y los precios actualizados antes de confirmar.')
-      }
-
       const payload = {
         customerName: checkout.customerName.trim(),
         customerPhone: checkout.customerPhone.trim(),
@@ -218,22 +207,47 @@ export function PublicMenuPage() {
         items: cart.map((item) => ({
           productId: item.product.id,
           quantity: item.quantity,
+          expectedUnitPrice: String(item.product.price),
         })),
       }
+
+      if (!window.crypto?.subtle || !window.crypto.randomUUID) throw new Error('No se pudo asegurar el envio. Abri la tienda mediante una conexion segura.')
+      const bytes = await window.crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify(payload)))
+      const fingerprint = Array.from(new Uint8Array(bytes), (byte) => byte.toString(16).padStart(2, '0')).join('')
+      let previous = attemptRef.current
+      try {
+        const stored: unknown = JSON.parse(sessionStorage.getItem(ATTEMPT_KEY) ?? 'null')
+        if (stored && typeof stored === 'object' && 'fingerprint' in stored && 'requestId' in stored && typeof stored.fingerprint === 'string' && typeof stored.requestId === 'string') previous = { fingerprint: stored.fingerprint, requestId: stored.requestId }
+      } catch { /* Continue with the in-memory attempt. */ }
+      const attempt = previous?.fingerprint === fingerprint ? previous : { fingerprint, requestId: window.crypto.randomUUID() }
+      attemptRef.current = attempt
+      try { sessionStorage.setItem(ATTEMPT_KEY, JSON.stringify(attempt)) } catch { /* The in-memory attempt still protects retries in this tab. */ }
 
       const response = await fetch(apiPath('/api/orders'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ ...payload, requestId: attempt.requestId }),
       })
 
       if (!response.ok) {
-        throw new Error(await readError(response))
+        const errorMessage = await readError(response)
+        if (response.status === 409 || response.status === 400) {
+          try {
+            const latest = await fetch(apiPath('/api/products?active=true'))
+            if (latest.ok) {
+              const latestData = (await latest.json()) as { products: Product[] }
+              setCart(restoreCart(cart.map(({ product, quantity }) => ({ productId: product.id, quantity })), latestData.products))
+            }
+          } catch { /* Keep the current cart if the menu cannot be refreshed. */ }
+        }
+        throw new Error(errorMessage)
       }
 
       const data = (await response.json()) as { order: Order }
+      attemptRef.current = null
+      try { sessionStorage.removeItem(ATTEMPT_KEY) } catch { /* Storage may be unavailable. */ }
       setConfirmedOrder(data.order)
       setCart([])
       setActiveView('confirmation')
@@ -338,7 +352,8 @@ export function PublicMenuPage() {
                 ) : (
                   <div className="menu-grid">
                     {categoryProducts.map((product) => (
-                      <article className="menu-item" key={product.id}>
+                      <article className={product.imageUrl ? 'menu-item has-photo' : 'menu-item'} key={product.id}>
+                        {product.imageUrl && <img className="product-photo" src={product.imageUrl} alt={product.name} loading="lazy" decoding="async" onError={(event) => { event.currentTarget.hidden = true }} />}
                         <div>
                           <h4>{product.name}</h4>
                           {product.description && <p>{product.description}</p>}
@@ -416,6 +431,7 @@ export function PublicMenuPage() {
                     <button
                       className="secondary"
                       aria-label={`Agregar una unidad de ${item.product.name}`}
+                      disabled={item.quantity >= 999}
                       onClick={() => updateCartQuantity(item.product.id, item.quantity + 1)}
                       type="button"
                     >

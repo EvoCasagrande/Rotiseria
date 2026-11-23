@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import type { OrdersService } from "./orders.service.js";
 import { AppError } from "../../utils/AppError.js";
+import { getStatistics } from './orders.statistics.js'
 import type { OrderQueryInput, CreateOrderInput, UpdateOrderStatusInput } from "./orders.schema.js"
 
 type ValidatedLocals<T> = {
@@ -9,6 +10,11 @@ type ValidatedLocals<T> = {
 
 export class OrdersController {
     constructor(private readonly ordersService: OrdersService){}
+    statistics = async (_req: Request, res: Response): Promise<void> => {
+        const { query } = res.locals.validated as { query: { from?: string; to?: string; timeZone: string } }
+        const statistics = await getStatistics({ from: query.from, to: query.to }, query.timeZone)
+        res.status(200).json({ status: 'success', statistics })
+    }
     getAll = async(
         _req: Request,
         res: Response<unknown, ValidatedLocals<{ query: OrderQueryInput }>>,

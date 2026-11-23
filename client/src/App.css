@@ -76,7 +76,7 @@
 .store-nav-actions > a { color: var(--food-ink); font-weight: 700; text-decoration: none; }
 .store-nav .cart-button { display: flex; gap: 16px; background: var(--food-ink); color: #fff; border-color: var(--food-ink); border-radius: 4px; }
 .store-nav .cart-button strong { background: #e8eacb; color: var(--food-ink); }
-.public-header { position: relative; min-height: min(650px, 72dvh); margin: 0; padding: clamp(32px, 5vw, 76px); display: flex; align-items: flex-end; border-radius: 0; background: linear-gradient(90deg, rgba(22,29,18,.85), rgba(22,29,18,.06) 80%), url('./assets/mesa-rotiseria.png') center / cover; }
+.public-header { position: relative; min-height: min(520px, 60dvh); margin: 0; padding: clamp(32px, 5vw, 76px); display: flex; align-items: flex-end; border-radius: 0; background: linear-gradient(90deg, rgba(22,29,18,.85), rgba(22,29,18,.06) 80%), url('./assets/mesa-rotiseria-optimizada.jpg') center / cover; }
 .public-header > div { max-width: 760px; }
 .public-header h1 { max-width: 720px; margin: 0 0 16px; font-family: Georgia, serif; font-size: clamp(3rem, 1.7rem + 5vw, 6.8rem); font-weight: 700; line-height: .95; letter-spacing: -.055em; }
 .public-header p { font-size: 1rem; color: #fff; }
@@ -128,7 +128,7 @@
 .menu-tools input, .menu-tools select { min-height: 46px; border-color: #cbd1c2; }
 .category-nav { position: sticky; top: 0; z-index: 5; scroll-target-group: auto; margin: 0; background: var(--food-paper); }
 .category-nav a { flex: none; border-bottom: 3px solid transparent; }
-.category-nav a:is(:target-current, .target-current) { border-bottom-color: var(--food-red); color: var(--food-ink); font-weight: 800; }
+.category-nav a.target-current { border-bottom-color: var(--food-red); color: var(--food-ink); font-weight: 800; }
 .menu-category { scroll-margin-top: 90px; }
 .menu-item-footer button { min-width: 112px; transition: background 160ms ease-out, transform 160ms ease-out; }
 .menu-item-footer button:active, .mobile-cart:active { transform: scale(.97); }
@@ -197,3 +197,30 @@
 .field-error { color: #a32d24; font-weight: 500; }
 .checkout-form input:not([type=radio]), .checkout-form textarea { font-size: max(1rem, 1em); }
 @media (max-width: 600px) { .confirmation-panel { margin-top: 24px; } }
+.orders-filters { grid-template-columns: minmax(180px, 1fr) repeat(2, minmax(120px, 150px)) repeat(2, minmax(130px, 155px)) minmax(150px, 190px); }
+.items-list small { color: #5e7065; font-weight: 400; }
+.order-meta { overflow-wrap: anywhere; }
+@media (max-width: 1200px) { .orders-filters { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 600px) { .orders-filters { grid-template-columns: 1fr; } }
+.order-quick-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.order-quick-actions button { width: auto; }
+.active-orders-toggle { display: flex; align-items: center; gap: 8px; color: #43594a; font-weight: 600; }
+.active-orders-toggle input { width: auto; accent-color: #174f43; }
+@media (max-width: 600px) { .orders-toolbar { align-items: flex-start; flex-wrap: wrap; } }
+.stats-bars { display: grid; gap: 10px; margin: 20px 0 26px; }
+.stats-bars > div { display: grid; grid-template-columns: 45px minmax(0, 1fr) auto; align-items: center; gap: 12px; color: #536657; font-size: .875rem; }
+.stats-bars > div > div { height: 10px; background: #edf2ee; border-radius: 6px; overflow: hidden; }
+.stats-bars i { display: block; height: 100%; background: #437b58; border-radius: 6px; }
+.stats-bars strong { color: #243a2a; }
+.product-form { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.product-form > button { width: auto; }
+.menu-item.has-photo { display: grid; grid-template-columns: minmax(0, 1fr) 132px; grid-template-rows: 1fr auto; column-gap: 18px; }
+.product-photo { grid-column: 2; grid-row: 1 / 3; width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 6px; }
+.product-photo[hidden] { display: none; }
+.menu-item.has-photo > div { grid-column: 1; }
+@media (max-width: 700px) { .product-form { grid-template-columns: 1fr; } .menu-item.has-photo { grid-template-columns: minmax(0, 1fr) 96px; } }
+.security-form { width: min(100%, 520px); display: grid; gap: 18px; padding: 24px; border: 1px solid #dce7e1; border-radius: 10px; background: #fff; }
+.security-form > p { margin: 0; color: #536657; }
+.security-form label span { color: #536657; font-weight: 400; }
+.security-form input { min-height: 48px; font-size: max(1rem, 1em); }
+.security-form button { width: auto; justify-self: start; }

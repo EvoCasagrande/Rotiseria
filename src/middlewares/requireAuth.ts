@@ -6,6 +6,7 @@ import { prisma } from '../lib/prisma.js';
 
 type AuthPayload = {
     id: string
+    tokenVersion?: number
 }
 
 export type AuthAdmin = {
@@ -42,7 +43,7 @@ export const requireAuth = async(req: Request, res: Response, next: NextFunction
         }
     })
 
-    if(!admin || !admin.active){
+    if(!admin || !admin.active || (payload.tokenVersion ?? 0) !== admin.tokenVersion){
         throw new AppError('Usuario no autorizado', 401);
     }
 

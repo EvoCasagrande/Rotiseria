@@ -132,6 +132,9 @@ async function seedMenu() {
 }
 
 async function main() {
+    if (process.env.NODE_ENV === 'production') {
+        throw new Error('El seed de demostracion no puede ejecutarse en produccion')
+    }
     if (shouldResetDemoData) {
         await resetDemoData()
         console.log("Pedidos, productos y categorias eliminados correctamente")
