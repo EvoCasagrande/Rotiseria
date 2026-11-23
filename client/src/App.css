@@ -66,3 +66,58 @@
   .table-panel { gap: 12px; overflow: visible; border: 0; background: transparent; }
   .table-row { border: 1px solid var(--border); border-radius: var(--radius); }
 }
+/* Art direction: a neighbourhood table and a focused workspace. */
+:root { --food-ink: #242c20; --food-paper: #f6f4e9; --food-red: #9c2e20; --food-line: #d7d8c7; }
+.public-shell { background: var(--food-paper); color: var(--food-ink); padding: 0 0 72px; }
+.store-nav { min-height: 78px; margin: 0; padding: 12px clamp(20px, 5vw, 76px); background: var(--food-paper); border-bottom: 1px solid var(--food-line); }
+.store-brand { color: var(--food-ink); font-size: 1.45rem; font-weight: 900; letter-spacing: -.06em; }
+.store-brand span { margin-left: 8px; font-size: .8125rem; font-weight: 500; letter-spacing: 0; }
+.store-nav-actions { display: flex; align-items: center; gap: 28px; }
+.store-nav-actions > a { color: var(--food-ink); font-weight: 700; text-decoration: none; }
+.store-nav .cart-button { display: flex; gap: 16px; background: var(--food-ink); color: #fff; border-color: var(--food-ink); border-radius: 4px; }
+.store-nav .cart-button strong { background: #e8eacb; color: var(--food-ink); }
+.public-header { position: relative; min-height: min(650px, 72dvh); margin: 0; padding: clamp(32px, 5vw, 76px); display: flex; align-items: flex-end; border-radius: 0; background: linear-gradient(90deg, rgba(22,29,18,.85), rgba(22,29,18,.06) 80%), url('./assets/mesa-rotiseria.png') center / cover; }
+.public-header > div { max-width: 760px; }
+.public-header h1 { max-width: 720px; margin: 0 0 16px; font-family: Georgia, serif; font-size: clamp(3rem, 1.7rem + 5vw, 6.8rem); font-weight: 700; line-height: .95; letter-spacing: -.055em; }
+.public-header p { font-size: 1rem; color: #fff; }
+.hero-link { display: inline-flex; justify-content: space-between; gap: 36px; margin-top: 26px; padding: 14px 18px; background: #f5f1d8; color: #242c20; font-weight: 800; text-decoration: none; }
+.public-layout, .confirmation-panel { width: min(100% - 40px, 1320px); margin-inline: auto; }
+.menu-panel { padding-top: 72px; }
+.section-heading { align-items: end; padding-bottom: 24px; border-color: var(--food-line); }
+.section-heading h2 { font-family: Georgia, serif; font-size: clamp(2.4rem, 1.5rem + 2.5vw, 4rem); }
+.section-heading p { color: #606958; }
+.category-nav { gap: 24px; padding: 20px 0; border-bottom: 1px solid var(--food-line); }
+.category-nav a { padding: 7px 0; border: 0; border-radius: 0; background: transparent; color: #344333; }
+.category-nav a:hover { background: transparent; text-decoration: underline; }
+.menu-category { padding-top: 44px; }
+.menu-category h3 { font-family: Georgia, serif; font-size: 1.8rem; }
+.menu-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 36px; }
+.menu-item { min-height: 150px; padding: 22px 0; border: 0; border-bottom: 1px solid var(--food-line); border-radius: 0; background: transparent; box-shadow: none; }
+.menu-item:hover { transform: none; border-color: var(--food-ink); }
+.menu-item h4 { font-size: 1.18rem; }
+.menu-item-footer button { border-radius: 4px; background: var(--food-red); border-color: var(--food-red); }
+.cart-screen { margin-top: 48px; border-radius: 4px; }
+.store-footer { width: min(100% - 40px, 1320px); margin-inline: auto; margin-top: 70px; border-color: var(--food-line); }
+.admin-shell { background: #f7f8f7; color: #212823; }
+.admin-topbar { background: #f0f2f0; border-color: #e1e5e2; }
+.admin-content { width: min(100%, 1500px); padding-top: 48px; }
+.admin-brand .brand-mark { border-radius: 6px; background: #2e4b3b; }
+.admin-nav .nav-button { border-radius: 6px; font-weight: 600; }
+.admin-nav .nav-button.active { background: #dfe7e0; box-shadow: none; }
+.dashboard-header h1 { font-size: 2rem; letter-spacing: -.04em; }
+.orders-filters, .products-filters, .inline-form, .product-form { border-radius: 8px; box-shadow: none; }
+.order-card { border-radius: 8px; }
+.table-panel { border-radius: 8px; }
+.login-shell { background: #f7f8f7; }
+.brand-panel { background: #253d30; }
+.brand-panel h1 { font-family: Georgia, serif; }
+@media (max-width: 700px) {
+  .store-nav { min-height: 68px; padding-inline: 20px; }
+  .store-brand span, .store-nav-actions > a { display: none; }
+  .store-nav-actions { gap: 8px; }
+  .public-header { min-height: 460px; padding: 28px 22px; background-position: 60% center; }
+  .public-header h1 { font-size: clamp(3rem, 1.7rem + 6vw, 4rem); }
+  .menu-panel { padding-top: 48px; }
+  .menu-grid { grid-template-columns: 1fr; }
+  .cart-screen { width: calc(100% - 32px); margin-top: 24px; }
+}

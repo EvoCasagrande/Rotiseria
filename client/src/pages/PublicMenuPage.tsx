@@ -186,16 +186,25 @@ export function PublicMenuPage() {
 
   return (
     <main className="public-shell">
+      <nav className="store-nav" aria-label="Navegacion principal">
+        <a className="store-brand" href="/">ROTISERIA<span> / cocina de barrio</span></a>
+        <div className="store-nav-actions">
+          <a href="#menu" onClick={() => setActiveView('menu')}>Ver menu</a>
+          <button className="cart-button" onClick={() => setActiveView('cart')} type="button">
+            Mi pedido <strong>{cartItemsCount}</strong>
+          </button>
+        </div>
+      </nav>
       <header className="public-header">
         <div>
-          <p className="eyebrow dark">Rotiseria</p>
-          <h1>Algo rico te espera.</h1>
-          <p>Elegi tus favoritos y hacenos tu pedido en unos minutos.</p>
+          <h1>Comer bien, compartir mejor.</h1>
+          <p>Tu comida favorita, lista para compartir.</p>
+          <a className="hero-link" href="#menu" onClick={() => setActiveView('menu')}>Explorar el menu <span aria-hidden="true">↗</span></a>
         </div>
 
       </header>
 
-      {message && <p className="form-message">{message}</p>}
+      {message && <p className="form-message" role="alert">{message}</p>}
 
       {confirmedOrder && (
         <section className="confirmation-panel" ref={confirmationRef} aria-live="polite">
@@ -223,7 +232,7 @@ export function PublicMenuPage() {
 
       {activeView === 'menu' ? (
       <div className="public-layout single">
-        <section className="menu-panel" aria-label="Menu">
+        <section className="menu-panel" id="menu" aria-label="Menu">
           <div className="section-heading">
             <div><h2>Nuestro menu</h2><p>Encontra algo para disfrutar hoy.</p></div>
             <button
@@ -239,7 +248,7 @@ export function PublicMenuPage() {
           {hasVisibleProducts && <nav className="category-nav" aria-label="Categorias del menu">
             {productsByCategory.filter(({ products: items }) => items.length > 0).map(({ category }) => <a href={`#category-${category.id}`} key={category.id}>{category.name}</a>)}
           </nav>}
-          {productsByCategory.length === 0 && !loading ? (
+          {message && !hasVisibleProducts ? null : productsByCategory.length === 0 && !loading ? (
             <p className="empty-state">Todavia no hay productos disponibles.</p>
           ) : !hasVisibleProducts && !loading ? (
             <p className="empty-state">Todavia no hay productos disponibles.</p>
