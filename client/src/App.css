@@ -224,3 +224,35 @@
 .security-form label span { color: #536657; font-weight: 400; }
 .security-form input { min-height: 48px; font-size: max(1rem, 1em); }
 .security-form button { width: auto; justify-self: start; }
+
+/* Statistics: compact filters, readable charts and exact values in tables. */
+.statistics { font-variant-numeric: tabular-nums; }
+.statistics .stats-toolbar { align-items: end; padding: 16px 0; border-bottom: 1px solid #dce7e1; }
+.stats-toolbar label { display: grid; gap: 6px; color: #43594a; font-size: .875rem; font-weight: 600; }
+.stats-toolbar input, .stats-toolbar select { width: auto; min-height: 44px; font-size: 1rem; }
+.stats-toolbar button { min-height: 44px; }
+.stats-toolbar > span { align-self: center; }
+.stats-metrics small { line-height: 1.4; }
+.stats-section h3 { margin: 24px 0 12px; font-size: 1rem; }
+.stats-chart { display: flex; align-items: end; gap: 8px; height: 220px; overflow-x: auto; padding: 12px 0 0; border-bottom: 1px solid #dce7e1; }
+.stats-chart-column { flex: 1 0 28px; display: flex; flex-direction: column; align-items: center; justify-content: end; gap: 8px; height: 100%; min-width: 28px; }
+.stats-chart-column span { color: #536657; font-size: .75rem; white-space: nowrap; }
+.stats-chart-bar { width: min(100%, 34px); min-height: 2px; background: #437b58; border-radius: 4px 4px 0 0; }
+.stats-details { margin-top: 20px; }
+.stats-details summary { cursor: pointer; color: #205d43; font-weight: 700; }
+.stats-table-wrap { max-width: 100%; overflow: auto; }
+.stats-table-wrap:focus-visible { outline: 2px solid #205d43; outline-offset: 2px; }
+.stats-table-wrap table { min-width: 280px; }
+.stats-table-wrap caption { text-align: left; padding: 12px 8px; color: #536657; }
+.stats-product-bars { display: grid; gap: 12px; margin: 20px 0; }
+.stats-product-bars > div > div:first-child, .stats-distribution-row > div:first-child { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
+.stats-product-bars span { overflow-wrap: anywhere; }
+.stats-track { height: 8px; overflow: hidden; background: #e8efea; border-radius: 4px; }
+.stats-track i { display: block; height: 100%; background: #437b58; border-radius: inherit; }
+.stats-distribution-row { margin: 14px 0; }
+.stats-distribution-row small { color: #5e7065; font-weight: 400; }
+@media (max-width: 600px) {
+  .statistics .stats-toolbar { align-items: stretch; }
+  .stats-toolbar input, .stats-toolbar select, .stats-toolbar button { width: 100%; }
+  .stats-chart { height: 180px; }
+}
