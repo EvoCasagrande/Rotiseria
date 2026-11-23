@@ -14,6 +14,7 @@ import type {
   ProductForm,
 } from '../types'
 import { formatPrice, ORDER_STATUSES, ORDER_STATUS_LABELS, TOKEN_KEY } from '../utils'
+import { StatisticsPanel } from './StatisticsPanel'
 
 export function AdminPage() {
   const [email, setEmail] = useState('admin@rotiseria.com')
@@ -704,6 +705,7 @@ export function AdminPage() {
           </div>
 
           <nav className="admin-nav" aria-label="Secciones del panel">
+            <button aria-current={activeSection === 'statistics' ? 'page' : undefined} className={activeSection === 'statistics' ? 'nav-button active' : 'nav-button'} onClick={() => setActiveSection('statistics')} type="button">Estadisticas</button>
             <button
               aria-current={activeSection === 'orders' ? 'page' : undefined}
               className={activeSection === 'orders' ? 'nav-button active' : 'nav-button'}
@@ -742,6 +744,7 @@ export function AdminPage() {
         </header>
 
         <section className="admin-content">
+          {activeSection === 'statistics' && <StatisticsPanel token={token} />}
           {activeSection === 'orders' && (
             <div className="dashboard">
               <header className="dashboard-header">

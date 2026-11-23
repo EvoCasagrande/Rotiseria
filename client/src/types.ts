@@ -96,4 +96,4 @@ export type CartItem = {
   quantity: number
 }
 
-export type AdminSection = 'orders' | 'categories' | 'products'
+export type AdminSection = 'orders' | 'categories' | 'products' | 'statistics'
