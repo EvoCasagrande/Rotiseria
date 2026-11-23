@@ -175,3 +175,25 @@
 .stats-daily { grid-column: 1 / -1; }
 @media (max-width: 900px) { .stats-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); } .stats-metrics > div:nth-child(3) { border-left: 0; } .stats-metrics > div:nth-child(n+3) { border-top: 1px solid #e2eae5; } }
 @media (max-width: 600px) { .stats-columns { grid-template-columns: 1fr; } .stats-daily { grid-column: auto; } .stats-metrics > div { padding: 15px; } .stats-toolbar { align-items: flex-start; flex-direction: column; } .stats-toolbar select { width: 100%; } }
+/* Checkout and confirmation */
+.confirmation-panel { display: block; width: min(calc(100% - 32px), 680px); margin: 48px auto 0; padding: clamp(24px, 4vw, 48px); background: #fff; border: 1px solid #dce7d9; border-radius: 12px; color: #233526; }
+.confirmation-panel:focus { outline: none; }
+.confirmation-panel h1 { margin-bottom: 12px; font-family: Georgia, serif; font-size: clamp(2.2rem, 1.5rem + 2vw, 3rem); }
+.confirmation-panel p { margin: 8px 0; color: #475d4c; }
+.confirmation-panel .confirmation-id { overflow-wrap: anywhere; }
+.confirmation-panel .confirmation-id strong { font-size: inherit; white-space: normal; }
+.confirmation-items { max-width: none; margin: 24px 0 0; padding: 16px 0; border-block: 1px solid #e1e8e0; }
+.confirmation-items li { padding: 5px 0; color: #233526; }
+.confirmation-items strong { font-size: inherit; }
+.confirmation-total { display: flex; justify-content: space-between; align-items: center; padding: 20px 0 28px; }
+.confirmation-total strong { font-size: 1.4rem; }
+.confirmation-panel button { width: 100%; }
+.cart-notice { width: min(calc(100% - 32px), 760px); margin: 20px auto 0; padding: 14px 16px; border-left: 3px solid #678357; background: #edf3e8; color: #29442d; }
+.delivery-options { display: flex; flex-wrap: wrap; gap: 12px; margin: 0; padding: 0; border: 0; }
+.delivery-options legend { margin-bottom: 10px; color: #415a53; font-weight: 700; font-size: .875rem; }
+.delivery-options label { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 120px; padding: 12px; border: 1px solid #cbd8cc; border-radius: 8px; cursor: pointer; }
+.delivery-options input { width: auto; min-height: auto; accent-color: #174f43; }
+.delivery-note { margin: 0; color: #536657; font-size: .875rem; }
+.field-error { color: #a32d24; font-weight: 500; }
+.checkout-form input:not([type=radio]), .checkout-form textarea { font-size: max(1rem, 1em); }
+@media (max-width: 600px) { .confirmation-panel { margin-top: 24px; } }

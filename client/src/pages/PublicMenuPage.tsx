@@ -3,12 +3,25 @@ import type { FormEvent } from 'react'
 import { apiPath, readError } from '../api'
 import type { CartItem, Category, CheckoutForm, Order, OrderType, Product } from '../types'
 import { formatPrice } from '../utils'
+import { parseSavedCart, restoreCart } from '../cart'
+import type { SavedItem } from '../cart'
+
+const CART_KEY = 'rotiseria.cart.v1'
+function readSavedCart(): SavedItem[] {
+  try {
+    return parseSavedCart(localStorage.getItem(CART_KEY))
+  } catch { return [] }
+}
 
 export function PublicMenuPage() {
-  const [activeView, setActiveView] = useState<'menu' | 'cart'>('menu')
+  const [activeView, setActiveView] = useState<'menu' | 'cart' | 'confirmation'>('menu')
   const [categories, setCategories] = useState<Category[]>([])
   const [products, setProducts] = useState<Product[]>([])
   const [cart, setCart] = useState<CartItem[]>([])
+  const [cartReady, setCartReady] = useState(false)
+  const [cartNotice, setCartNotice] = useState('')
+  const [touched, setTouched] = useState({ customerName: false, customerPhone: false, address: false })
+  const savedCart = useRef<SavedItem[] | null>(readSavedCart())
   const [checkout, setCheckout] = useState<CheckoutForm>({
     customerName: '',
     customerPhone: '',
@@ -72,6 +85,15 @@ export function PublicMenuPage() {
       const productsData = (await productsResponse.json()) as { products: Product[] }
       setCategories(categoriesData.categories)
       setProducts(productsData.products)
+      const stored = savedCart.current
+      if (stored) {
+        savedCart.current = null
+        const restored = restoreCart(stored, productsData.products)
+        setCart(restored)
+        if (restored.length < stored.length) setCartNotice('Algunos productos guardados ya no estan disponibles y se quitaron del carrito. Revisa los precios actuales.')
+        else if (restored.length) setCartNotice('Recuperamos tu carrito con los precios actuales. Revisalo antes de confirmar.')
+      }
+      setCartReady(true)
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'No se pudo cargar el menu')
     } finally {
@@ -82,6 +104,14 @@ export function PublicMenuPage() {
   useEffect(() => {
     void loadMenu()
   }, [])
+
+  useEffect(() => {
+    if (!cartReady) return
+    try {
+      if (cart.length) localStorage.setItem(CART_KEY, JSON.stringify(cart.map(({ product, quantity }) => ({ productId: product.id, quantity }))))
+      else localStorage.removeItem(CART_KEY)
+    } catch { /* The cart remains usable in memory when storage is unavailable. */ }
+  }, [cart, cartReady])
 
   useEffect(() => {
     if (activeView !== 'menu' || !hasVisibleProducts) return
@@ -106,12 +136,7 @@ export function PublicMenuPage() {
       return
     }
 
-    window.setTimeout(() => {
-      confirmationRef.current?.scrollIntoView({
-        behavior: 'smooth',
-        block: 'start',
-      })
-    }, 100)
+    confirmationRef.current?.focus()
   }, [confirmedOrder])
 
   const addToCart = (product: Product) => {
@@ -156,6 +181,10 @@ export function PublicMenuPage() {
     }))
   }
 
+  const nameError = touched.customerName && checkout.customerName.trim().length < 2
+  const phoneError = touched.customerPhone && checkout.customerPhone.trim().length < 6
+  const addressError = touched.address && checkout.orderType === 'DELIVERY' && !checkout.address.trim()
+
   const createOrder = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     setSubmitting(true)
@@ -165,6 +194,19 @@ export function PublicMenuPage() {
     try {
       if (cart.length === 0) {
         throw new Error('Agrega al menos un producto al carrito')
+      }
+
+      const latestResponse = await fetch(apiPath('/api/products?active=true'))
+      if (!latestResponse.ok) throw new Error(await readError(latestResponse))
+      const latestData = (await latestResponse.json()) as { products: Product[] }
+      const available = new Map(latestData.products.map((product) => [product.id, product]))
+      const updated = cart.flatMap((item) => {
+        const product = available.get(item.product.id)
+        return product ? [{ product, quantity: item.quantity }] : []
+      })
+      if (updated.length !== cart.length || updated.some((item, index) => item.product.price !== cart[index].product.price)) {
+        setCart(updated)
+        throw new Error('El menu cambio. Revisa la disponibilidad y los precios actualizados antes de confirmar.')
       }
 
       const payload = {
@@ -194,7 +236,7 @@ export function PublicMenuPage() {
       const data = (await response.json()) as { order: Order }
       setConfirmedOrder(data.order)
       setCart([])
-      setActiveView('menu')
+      setActiveView('confirmation')
       setCheckout({
         customerName: '',
         customerPhone: '',
@@ -202,6 +244,8 @@ export function PublicMenuPage() {
         address: '',
         notes: '',
       })
+      setTouched({ customerName: false, customerPhone: false, address: false })
+      setCartNotice('')
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'No se pudo crear el pedido')
     } finally {
@@ -230,12 +274,14 @@ export function PublicMenuPage() {
       </header>}
 
       {message && <p className="form-message" role="alert">{message}</p>}
+      {cartNotice && activeView !== 'confirmation' && <p className="cart-notice" role="status">{cartNotice}</p>}
 
-      {confirmedOrder && (
-        <section className="confirmation-panel" ref={confirmationRef} aria-live="polite">
+      {activeView === 'confirmation' && confirmedOrder && (
+        <section className="confirmation-panel" ref={confirmationRef} tabIndex={-1} aria-live="polite">
           <div>
-            <p className="eyebrow dark">Pedido recibido</p>
-            <h2>Gracias, {confirmedOrder.customerName}</h2>
+            <h1>Pedido recibido</h1>
+            <p>Gracias, {confirmedOrder.customerName}. Tu pedido fue registrado.</p>
+            <p className="confirmation-id">Numero de pedido: <strong>{confirmedOrder.id}</strong></p>
             <p>
               Tu pedido quedo registrado como{' '}
               {confirmedOrder.orderType === 'DELIVERY' ? 'envio' : 'retiro'}.
@@ -250,8 +296,9 @@ export function PublicMenuPage() {
                 </li>
               ))}
             </ul>
+            <div className="confirmation-total"><span>Total</span><strong>{formatPrice(confirmedOrder.total)}</strong></div>
+            <button type="button" onClick={() => { setConfirmedOrder(null); setActiveView('menu') }}>Volver al menu</button>
           </div>
-          <strong>{formatPrice(confirmedOrder.total)}</strong>
         </section>
       )}
 
@@ -321,7 +368,7 @@ export function PublicMenuPage() {
           )}
         </section>
       </div>
-      ) : (
+      ) : activeView === 'cart' ? (
         <section className="cart-screen" ref={cartRef} aria-label="Carrito">
           <div className="cart-screen-header">
             <div>
@@ -381,57 +428,66 @@ export function PublicMenuPage() {
           )}
 
           <div className="cart-total">
-            <span>Total</span>
+            <span>Subtotal de productos</span>
             <strong>{formatPrice(cartTotal)}</strong>
           </div>
 
           {cart.length > 0 && <form className="checkout-form" onSubmit={createOrder}>
             <section className="checkout-section">
               <h3>Datos del cliente</h3>
-              <label>
-                Nombre
+              <label htmlFor="checkout-name">
+                Nombre (obligatorio)
                 <input
+                  id="checkout-name"
                   autoComplete="name"
                   required minLength={2} maxLength={50}
+                  aria-invalid={nameError || undefined}
+                  aria-describedby={nameError ? 'name-error' : undefined}
+                  onBlur={() => setTouched((current) => ({ ...current, customerName: true }))}
                   onChange={(event) => updateCheckoutField('customerName', event.target.value)}
                   value={checkout.customerName}
                 />
+                {nameError && <span id="name-error" className="field-error">Ingresa al menos 2 caracteres.</span>}
               </label>
 
-              <label>
-                Telefono
+              <label htmlFor="checkout-phone">
+                Telefono (obligatorio)
                 <input
+                  id="checkout-phone"
                   autoComplete="tel"
                   required minLength={6} maxLength={30}
                   inputMode="tel"
+                  aria-invalid={phoneError || undefined}
+                  aria-describedby={phoneError ? 'phone-error' : undefined}
+                  onBlur={() => setTouched((current) => ({ ...current, customerPhone: true }))}
                   onChange={(event) => updateCheckoutField('customerPhone', event.target.value)}
                   value={checkout.customerPhone}
                 />
+                {phoneError && <span id="phone-error" className="field-error">Ingresa al menos 6 caracteres.</span>}
               </label>
             </section>
 
             <section className="checkout-section">
               <h3>Entrega</h3>
-              <label>
-                Tipo de pedido
-                <select
-                  onChange={(event) => updateCheckoutField('orderType', event.target.value as OrderType)}
-                  value={checkout.orderType}
-                >
-                  <option value="PICKUP">Retiro</option>
-                  <option value="DELIVERY">Envio</option>
-                </select>
-              </label>
+              <fieldset className="delivery-options"><legend>Tipo de pedido</legend>
+                {(['PICKUP', 'DELIVERY'] as OrderType[]).map((type) => <label key={type}><input type="radio" name="orderType" checked={checkout.orderType === type} onChange={() => updateCheckoutField('orderType', type)} />{type === 'PICKUP' ? 'Retiro' : 'Envio'}</label>)}
+              </fieldset>
+              {checkout.orderType === 'DELIVERY' && <p className="delivery-note">El costo de envio no esta informado en el sistema. Consulta con la rotiseria.</p>}
 
               {checkout.orderType === 'DELIVERY' && (
-                <label>
-                  Direccion
+                <label htmlFor="checkout-address">
+                  Direccion (obligatoria)
                   <input
+                    id="checkout-address"
                     autoComplete="street-address"
                     required
+                    aria-invalid={addressError || undefined}
+                    aria-describedby={addressError ? 'address-error' : undefined}
+                    onBlur={() => setTouched((current) => ({ ...current, address: true }))}
                     onChange={(event) => updateCheckoutField('address', event.target.value)}
                     value={checkout.address}
                   />
+                  {addressError && <span id="address-error" className="field-error">Ingresa la direccion de entrega.</span>}
                 </label>
               )}
 
@@ -446,11 +502,11 @@ export function PublicMenuPage() {
             </section>
 
             <button disabled={submitting || cart.length === 0} type="submit">
-              {submitting ? 'Enviando...' : `Confirmar pedido · ${formatPrice(cartTotal)}`}
+              {submitting ? 'Enviando...' : `Confirmar pedido · ${formatPrice(cartTotal)} en productos`}
             </button>
           </form>}
         </section>
-      )}
+      ) : null}
       <div className="sr-only" aria-live="polite" aria-atomic="true">{announcement}</div>
       {activeView === 'menu' && cartItemsCount > 0 && <button className="mobile-cart" type="button" onClick={() => setActiveView('cart')}><span>Ver pedido ({cartItemsCount})</span><strong>{formatPrice(cartTotal)}</strong></button>}
     </main>
