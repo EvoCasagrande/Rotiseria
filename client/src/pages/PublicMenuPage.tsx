@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+﻿import { useEffect, useMemo, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { apiPath, readError } from '../api'
 import type { CartItem, Category, CheckoutForm, Order, OrderType, Product } from '../types'
 import { formatPrice } from '../utils'
 import { parseSavedCart, restoreCart } from '../cart'
+import { StoreFooter, useBusinessSettings } from '../components/StoreFooter'
 import type { SavedItem } from '../cart'
 
 const CART_KEY = 'rotiseria.cart.v1'
@@ -15,6 +16,7 @@ function readSavedCart(): SavedItem[] {
 }
 
 export function PublicMenuPage() {
+  const { settings } = useBusinessSettings()
   const [activeView, setActiveView] = useState<'menu' | 'cart' | 'confirmation'>('menu')
   const [categories, setCategories] = useState<Category[]>([])
   const [products, setProducts] = useState<Product[]>([])
@@ -40,7 +42,7 @@ export function PublicMenuPage() {
   const [activeCategory, setActiveCategory] = useState('')
   const [announcement, setAnnouncement] = useState('')
   const confirmationRef = useRef<HTMLElement | null>(null)
-  const cartRef = useRef<HTMLElement | null>(null)
+  const cartRef = useRef<HTMLDialogElement | null>(null)
   const attemptRef = useRef<{ fingerprint: string; requestId: string } | null>(null)
 
   const cartTotal = useMemo(
@@ -130,7 +132,7 @@ export function PublicMenuPage() {
   }, [activeView, productsByCategory, hasVisibleProducts])
 
   useEffect(() => {
-    if (activeView === 'cart') cartRef.current?.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' })
+    if (activeView === 'cart') cartRef.current?.showModal()
   }, [activeView])
 
   useEffect(() => {
@@ -270,7 +272,7 @@ export function PublicMenuPage() {
   return (
     <main className="public-shell">
       <nav className="store-nav" aria-label="Navegacion principal">
-        <a className="store-brand" href="/">ROTISERIA<span> / cocina de barrio</span></a>
+        <a className="store-brand" href="/">rotiseria<span>cocina de barrio</span></a>
         <div className="store-nav-actions">
           <a href="#menu" onClick={() => setActiveView('menu')}>Ver menu</a>
           <button className="cart-button" onClick={() => setActiveView('cart')} type="button">
@@ -278,17 +280,18 @@ export function PublicMenuPage() {
           </button>
         </div>
       </nav>
-      {activeView === 'menu' && <header className="public-header">
+      {activeView !== 'confirmation' && <header className="public-header">
         <div>
-          <h1>Comer bien, compartir mejor.</h1>
-          <p>Tu comida favorita, lista para compartir.</p>
-          <a className="hero-link" href="#menu" onClick={() => setActiveView('menu')}>Explorar el menu <span aria-hidden="true">↗</span></a>
+          <h1>Comida rica,<br />para compartir.</h1>
+          <p>Comida para disfrutar todos los dias.</p>
+          <a className="hero-link" href="#menu" onClick={() => setActiveView('menu')}>Explorar el menu <span aria-hidden="true">&#8599;</span></a>
         </div>
 
       </header>}
 
-      {message && <p className="form-message" role="alert">{message}</p>}
-      {cartNotice && activeView !== 'confirmation' && <p className="cart-notice" role="status">{cartNotice}</p>}
+      <a className="regret-entry" href="/arrepentimiento">Boton de arrepentimiento</a>
+      {message && activeView !== 'cart' && <p className="form-message" role="alert">{message}</p>}
+      {cartNotice && activeView === 'menu' && <p className="cart-notice" role="status">{cartNotice}</p>}
 
       {activeView === 'confirmation' && confirmedOrder && (
         <section className="confirmation-panel" ref={confirmationRef} tabIndex={-1} aria-live="polite">
@@ -316,11 +319,11 @@ export function PublicMenuPage() {
         </section>
       )}
 
-      {activeView === 'menu' ? (
+      {activeView !== 'confirmation' && (
       <div className="public-layout single">
         <section className="menu-panel" id="menu" aria-label="Menu">
           <div className="section-heading">
-            <div><h2>Nuestro menu</h2><p>Encontra algo para disfrutar hoy.</p></div>
+            <div><h2>Hay algo rico para vos.</h2><p>Explora el menu y arma tu pedido.</p></div>
             <button
               className="secondary compact"
               disabled={loading}
@@ -357,6 +360,9 @@ export function PublicMenuPage() {
                         <div>
                           <h4>{product.name}</h4>
                           {product.description && <p>{product.description}</p>}
+                          {product.ingredients && <p className="food-details"><strong>Ingredientes:</strong> {product.ingredients}</p>}
+                          {product.allergens && <p className="food-details"><strong>Alergenos:</strong> {product.allergens}</p>}
+                          {!product.allergens && <p className="food-details">Alergenos no informados. Consulta antes de pedir.</p>}
                         </div>
 
                         <div className="menu-item-footer">
@@ -383,12 +389,13 @@ export function PublicMenuPage() {
           )}
         </section>
       </div>
-      ) : activeView === 'cart' ? (
-        <section className="cart-screen" ref={cartRef} aria-label="Carrito">
+      )}
+      {activeView === 'cart' && (
+        <dialog className="cart-screen" ref={cartRef} aria-label="Tu pedido" onCancel={() => setActiveView('menu')}>
           <div className="cart-screen-header">
             <div>
-              <p className="eyebrow dark">Pedido</p>
-              <h2>Carrito</h2>
+              
+              <h2>Tu pedido</h2>
             </div>
             <button
               aria-label="Volver al menu"
@@ -402,8 +409,10 @@ export function PublicMenuPage() {
             </button>
           </div>
 
+          {message && <p className="form-message" role="alert">{message}</p>}
+          {cartNotice && <p className="cart-notice" role="status">{cartNotice}</p>}
           <div className="cart-summary">
-            <span>{cartItemsCount} productos</span>
+            <span>{cartItemsCount} {cartItemsCount === 1 ? 'producto' : 'productos'}</span>
             <strong>{formatPrice(cartTotal)}</strong>
           </div>
 
@@ -518,13 +527,15 @@ export function PublicMenuPage() {
             </section>
 
             <button disabled={submitting || cart.length === 0} type="submit">
-              {submitting ? 'Enviando...' : `Confirmar pedido · ${formatPrice(cartTotal)} en productos`}
+              {submitting ? 'Enviando...' : `Confirmar pedido - ${formatPrice(cartTotal)} en productos`}
             </button>
           </form>}
-        </section>
-      ) : null}
+        </dialog>
+      )}
+      <StoreFooter settings={settings} hasFloatingCart={activeView === 'menu' && cartItemsCount > 0} />
       <div className="sr-only" aria-live="polite" aria-atomic="true">{announcement}</div>
       {activeView === 'menu' && cartItemsCount > 0 && <button className="mobile-cart" type="button" onClick={() => setActiveView('cart')}><span>Ver pedido ({cartItemsCount})</span><strong>{formatPrice(cartTotal)}</strong></button>}
     </main>
   )
 }
+

@@ -7,6 +7,8 @@ import productsRouter from "./modules/products/products.routes.js";
 import ordersRouter from "./modules/orders/orders.routes.js"
 import authRouter from "./modules/auth/auth.routes.js"
 
+import settingsRouter from "./modules/settings/settings.routes.js"
+
 const app: Application = express()
 
 //Middlewares
@@ -35,6 +37,7 @@ app.use('/api/categories', categoriesRouter);
 app.use('/api/products', productsRouter);
 app.use('/api/orders', ordersRouter);
 app.use('/api/auth', authRouter);
+app.use('/api/settings', settingsRouter);
 
 //ENDPOINT DE SALUD
 app.use('/api/health', (_req: Request, res: Response) => {

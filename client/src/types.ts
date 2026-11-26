@@ -55,6 +55,8 @@ export type Product = {
   name: string
   description: string | null
   imageUrl?: string | null
+  ingredients?: string | null
+  allergens?: string | null
   price: string
   active: boolean
   categoryId: string
@@ -69,6 +71,8 @@ export type ProductForm = {
   name: string
   description: string
   imageUrl: string
+  ingredients: string
+  allergens: string
   price: string
   categoryId: string
 }
@@ -100,4 +104,4 @@ export type CartItem = {
   quantity: number
 }
 
-export type AdminSection = 'orders' | 'categories' | 'products' | 'statistics' | 'security'
+export type AdminSection = 'overview' | 'orders' | 'categories' | 'products' | 'statistics' | 'security' | 'settings'

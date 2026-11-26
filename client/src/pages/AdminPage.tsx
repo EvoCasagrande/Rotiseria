@@ -16,13 +16,27 @@ import type {
 import { formatPrice, ORDER_STATUSES, ORDER_STATUS_LABELS, TOKEN_KEY } from '../utils'
 import { StatisticsPanel } from './StatisticsPanel'
 import { SecurityPanel } from './SecurityPanel'
+import { BusinessSettingsPanel } from './BusinessSettingsPanel'
+import { OverviewPanel } from './OverviewPanel'
+
+const navPaths: Record<AdminSection, string> = {
+  overview: 'M3 3h7v7H3z M14 3h7v7h-7z M3 14h7v7H3z M14 14h7v7h-7z',
+  orders: 'M5 3h14v18H5z M8 8h8 M8 12h8 M8 16h5',
+  products: 'M12 3 3 8v8l9 5 9-5V8z M3 8l9 5 9-5 M12 13v8',
+  categories: 'M3 5h7l2 2h9v12H3z',
+  statistics: 'M4 20V10 M10 20V4 M16 20v-7 M22 20H2',
+  settings: 'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z M12 2v3 M12 19v3 M2 12h3 M19 12h3 M5 5l2 2 M17 17l2 2 M19 5l-2 2 M7 17l-2 2',
+  security: 'M12 3 4 6v5c0 5 3 8 8 10 5-2 8-5 8-10V6z M9 12l2 2 4-4',
+}
 
 export function AdminPage() {
   const [email, setEmail] = useState('admin@rotiseria.com')
   const [password, setPassword] = useState('')
   const [token, setToken] = useState(() => localStorage.getItem(TOKEN_KEY) ?? '')
   const [admin, setAdmin] = useState<Admin | null>(null)
-  const [activeSection, setActiveSection] = useState<AdminSection>('orders')
+  const [activeSection, setActiveSection] = useState<AdminSection>('overview')
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const [orders, setOrders] = useState<Order[]>([])
   const [onlyActiveOrders, setOnlyActiveOrders] = useState(true)
   const [orderFilters, setOrderFilters] = useState<OrderFilters>({
@@ -46,15 +60,17 @@ export function AdminPage() {
   const [newProduct, setNewProduct] = useState<ProductForm>({
     name: '',
     description: '',
-    imageUrl: '',
+    imageUrl: '', ingredients: '', allergens: '',
     price: '',
     categoryId: '',
   })
   const [editingProductId, setEditingProductId] = useState('')
+  const productDialogRef = useRef<HTMLDialogElement>(null)
+  useEffect(() => { if (editingProductId && productDialogRef.current && !productDialogRef.current.open) productDialogRef.current.showModal() }, [editingProductId])
   const [editingProduct, setEditingProduct] = useState<ProductForm>({
     name: '',
     description: '',
-    imageUrl: '',
+    imageUrl: '', ingredients: '', allergens: '',
     price: '',
     categoryId: '',
   })
@@ -590,6 +606,8 @@ export function AdminPage() {
       name: form.name.trim(),
       description: form.description.trim() || undefined,
       imageUrl: form.imageUrl.trim() || null,
+      ingredients: form.ingredients.trim() || null,
+      allergens: form.allergens.trim() || null,
       price: Number(form.price),
       categoryId: form.categoryId,
     }
@@ -622,7 +640,7 @@ export function AdminPage() {
         throw new Error(await readError(response))
       }
 
-      setNewProduct({ name: '', description: '', imageUrl: '', price: '', categoryId: '' })
+      setNewProduct({ name: '', description: '', imageUrl: '', ingredients: '', allergens: '', price: '', categoryId: '' })
       await loadProducts()
     } catch (error) {
       setProductsMessage(error instanceof Error ? error.message : 'No se pudo crear el producto')
@@ -637,6 +655,8 @@ export function AdminPage() {
       name: product.name,
       description: product.description ?? '',
       imageUrl: product.imageUrl ?? '',
+      ingredients: product.ingredients ?? '',
+      allergens: product.allergens ?? '',
       price: product.price,
       categoryId: product.categoryId,
     })
@@ -645,7 +665,7 @@ export function AdminPage() {
 
   const cancelEditingProduct = () => {
     setEditingProductId('')
-    setEditingProduct({ name: '', description: '', imageUrl: '', price: '', categoryId: '' })
+    setEditingProduct({ name: '', description: '', imageUrl: '', ingredients: '', allergens: '', price: '', categoryId: '' })
   }
 
   const updateProduct = async (productId: string) => {
@@ -729,57 +749,28 @@ export function AdminPage() {
 
   if (admin) {
     return (
-      <main className="admin-shell">
-        <header className="admin-topbar">
-          <div className="admin-brand">
-            <span className="brand-mark">R</span>
-            <div>
-              <strong>Rotiseria</strong>
-              <span>Panel interno</span>
-            </div>
-          </div>
-
-          <nav className="admin-nav" aria-label="Secciones del panel">
-            <button aria-current={activeSection === 'statistics' ? 'page' : undefined} className={activeSection === 'statistics' ? 'nav-button active' : 'nav-button'} onClick={() => setActiveSection('statistics')} type="button">Estadisticas</button>
-            <button aria-current={activeSection === 'security' ? 'page' : undefined} className={activeSection === 'security' ? 'nav-button active' : 'nav-button'} onClick={() => setActiveSection('security')} type="button">Seguridad</button>
-            <button
-              aria-current={activeSection === 'orders' ? 'page' : undefined}
-              className={activeSection === 'orders' ? 'nav-button active' : 'nav-button'}
-              onClick={() => { setActiveSection('orders'); setHighlightedOrderIds([]) }}
-              type="button"
-            >
-              Pedidos {highlightedOrderIds.length > 0 && `(${highlightedOrderIds.length} nuevos)`}
-            </button>
-            <button
-              aria-current={activeSection === 'categories' ? 'page' : undefined}
-              className={activeSection === 'categories' ? 'nav-button active' : 'nav-button'}
-              onClick={() => setActiveSection('categories')}
-              type="button"
-            >
-              Categorias
-            </button>
-            <button
-              aria-current={activeSection === 'products' ? 'page' : undefined}
-              className={activeSection === 'products' ? 'nav-button active' : 'nav-button'}
-              onClick={() => setActiveSection('products')}
-              type="button"
-            >
-              Productos
-            </button>
+      <main className={sidebarCollapsed ? 'admin-shell sidebar-collapsed' : 'admin-shell'}>
+        <header className="admin-mobile-header"><strong>rotiseria<span> / gestion</span></strong><button type="button" className="admin-menu-toggle" onClick={() => setMobileNavOpen(!mobileNavOpen)} aria-expanded={mobileNavOpen} aria-controls="admin-navigation">{mobileNavOpen ? 'Cerrar' : 'Menu'}</button></header>
+        <aside className={mobileNavOpen ? 'admin-topbar mobile-open' : 'admin-topbar'}>
+          <div className="admin-brand"><span className="brand-mark">R</span><div><strong>rotiseria<span className="brand-period">.</span></strong><span>Espacio de gestion</span></div><button className="sidebar-toggle" type="button" aria-label={sidebarCollapsed ? 'Expandir barra lateral' : 'Colapsar barra lateral'} aria-expanded={!sidebarCollapsed} onClick={() => setSidebarCollapsed(!sidebarCollapsed)}>{sidebarCollapsed ? '>' : '<'}</button></div>
+          <nav id="admin-navigation" className="admin-nav" aria-label="Secciones del panel">
+            <p className="nav-group-title">Operacion</p>
+            {([
+              ['overview', 'Resumen'], ['orders', 'Pedidos'],
+              ['products', 'Productos'], ['categories', 'Categorias'],
+              ['statistics', 'Estadisticas'], ['settings', 'Configuracion'], ['security', 'Seguridad'],
+            ] as const).map(([section, label], index) => <div key={section} className={index === 2 || index === 4 || index === 5 ? 'nav-section-start' : undefined}>
+              {index === 2 && <p className="nav-group-title">Catalogo</p>}{index === 4 && <p className="nav-group-title">Analisis</p>}{index === 5 && <p className="nav-group-title">Negocio</p>}
+              <button aria-label={label} aria-current={activeSection === section ? 'page' : undefined} title={label} className={activeSection === section ? 'nav-button active' : 'nav-button'} onClick={() => { setActiveSection(section); setMobileNavOpen(false); if (section === 'orders') setHighlightedOrderIds([]) }} type="button"><span className="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d={navPaths[section]} /></svg></span><span className="nav-label">{label}</span>{section === 'orders' && highlightedOrderIds.length > 0 && <span className="nav-count" aria-label={`${highlightedOrderIds.length} pedidos nuevos`}>{highlightedOrderIds.length}</span>}</button>
+            </div>)}
           </nav>
-
-          <div className="admin-user">
-            <div>
-              <strong>{admin.name}</strong>
-              <span>{admin.email}</span>
-            </div>
-            <button className="secondary compact" onClick={handleLogout} type="button">
-              Salir
-            </button>
-          </div>
-        </header>
-
+          <div className="admin-user"><span className="admin-avatar" aria-hidden="true">{admin.name.slice(0, 1).toUpperCase()}</span><div><strong>{admin.name}</strong><span>{admin.email}</span></div><button className="secondary compact" onClick={handleLogout} type="button">Salir</button></div>
+        </aside>
         <section className="admin-content">
+          <div className="workspace-topline"><span>Panel de administracion</span><span>{admin.name}</span></div>
+          {highlightedOrderIds.length > 0 && activeSection !== 'orders' && <button className="new-order-alert" type="button" onClick={() => { setActiveSection('orders'); setHighlightedOrderIds([]) }}>{highlightedOrderIds.length} {highlightedOrderIds.length === 1 ? 'pedido nuevo' : 'pedidos nuevos'} - Ver pedidos &rarr;</button>}
+          {activeSection === 'overview' && <OverviewPanel token={token} onNavigate={setActiveSection} />}
+          {activeSection === 'settings' && <BusinessSettingsPanel token={token} />}
           {activeSection === 'statistics' && <StatisticsPanel token={token} />}
           {activeSection === 'security' && <SecurityPanel token={token} onChanged={() => { handleLogout(); setMessage('Contrasena actualizada. Inicia sesion nuevamente.') }} />}
           {activeSection === 'orders' && (
@@ -804,7 +795,7 @@ export function AdminPage() {
               {message && <p className="form-message">{message}</p>}
               {ordersMessage && <p className="form-message">{ordersMessage}</p>}
 
-              <form className="orders-filters" onSubmit={applyOrderFilters}>
+              <details className="admin-filter-disclosure"><summary>Buscar y filtrar pedidos</summary><form className="orders-filters" onSubmit={applyOrderFilters}>
                 <label>
                   Buscar
                   <input
@@ -855,7 +846,7 @@ export function AdminPage() {
                     Limpiar
                   </button>
                 </div>
-              </form>
+              </form></details>
 
               <div className="orders-toolbar">
                 <span>{orders.filter((order) => !onlyActiveOrders || (order.status !== 'COMPLETED' && order.status !== 'CANCELLED')).length} pedidos</span>
@@ -863,7 +854,7 @@ export function AdminPage() {
               </div>
 
               <section className="orders-list" aria-label="Lista de pedidos">
-                {orders.filter((order) => !onlyActiveOrders || (order.status !== 'COMPLETED' && order.status !== 'CANCELLED')).length === 0 && !ordersLoading ? (
+                {ordersMessage && orders.length === 0 ? null : ordersLoading && orders.length === 0 ? <p className="empty-state" role="status">Cargando pedidos...</p> : orders.filter((order) => !onlyActiveOrders || (order.status !== 'COMPLETED' && order.status !== 'CANCELLED')).length === 0 ? (
                   <p className="empty-state">No hay pedidos para mostrar. Desactiva el filtro de activos para ver el historial.</p>
                 ) : (
                   orders.filter((order) => !onlyActiveOrders || (order.status !== 'COMPLETED' && order.status !== 'CANCELLED')).map((order) => {
@@ -886,7 +877,7 @@ export function AdminPage() {
                             Pedido {order.id} ·{' '}
                             {order.customerPhone} -{' '}
                             {order.orderType === 'DELIVERY' ? 'Envio' : 'Retiro'} -{' '}
-                            {new Date(order.createdAt).toLocaleString()}
+                            {new Date(order.createdAt).toLocaleString('es-AR')}
                           </p>
                           {order.address && <p className="order-note">Direccion: {order.address}</p>}
                           {order.notes && <p className="order-note">Notas: {order.notes}</p>}
@@ -974,7 +965,7 @@ export function AdminPage() {
                   <span>Acciones</span>
                 </div>
 
-                {categories.length === 0 && !categoriesLoading ? (
+                {categoriesMessage && categories.length === 0 ? null : categoriesLoading && categories.length === 0 ? <p className="empty-state" role="status">Cargando categorias...</p> : categories.length === 0 ? (
                   <p className="empty-state">Todavia no hay categorias para mostrar.</p>
                 ) : (
                   categories.map((category) => (
@@ -1067,7 +1058,7 @@ export function AdminPage() {
 
               {productsMessage && <p className="form-message">{productsMessage}</p>}
 
-              <form className="product-form" onSubmit={createProduct}>
+              <details className="admin-create-disclosure"><summary>Agregar producto <span aria-hidden="true">+</span></summary><form className="product-form" onSubmit={createProduct}>
                 <label>
                   Nombre
                   <input
@@ -1087,6 +1078,8 @@ export function AdminPage() {
                 </label>
 
                 <label>URL de imagen (opcional)<input type="url" placeholder="https://..." onChange={(event) => updateNewProductField('imageUrl', event.target.value)} value={newProduct.imageUrl} /></label>
+                <label>Ingredientes (opcional)<textarea maxLength={1000} value={newProduct.ingredients} onChange={(event) => updateNewProductField('ingredients', event.target.value)} /></label>
+                <label>Alergenos y posibles trazas (opcional)<textarea maxLength={1000} value={newProduct.allergens} onChange={(event) => updateNewProductField('allergens', event.target.value)} /></label>
 
                 <label>
                   Precio
@@ -1120,7 +1113,7 @@ export function AdminPage() {
                 <button disabled={productsLoading} type="submit">
                   Crear
                 </button>
-              </form>
+              </form></details>
 
               <form className="products-filters" onSubmit={applyProductFilters}>
                 <label>
@@ -1180,122 +1173,33 @@ export function AdminPage() {
                   <span>Acciones</span>
                 </div>
 
-                {products.length === 0 && !productsLoading ? (
+                {productsMessage && products.length === 0 ? null : productsLoading && products.length === 0 ? <p className="empty-state" role="status">Cargando productos...</p> : products.length === 0 ? (
                   <p className="empty-state">Todavia no hay productos para mostrar.</p>
                 ) : (
                   products.map((product) => (
                     <article className="table-row product-row" key={product.id}>
-                      <div className="product-name-cell">
-                        {editingProductId === product.id ? (
-                          <>
-                            <input
-                              onChange={(event) => updateEditingProductField('name', event.target.value)}
-                              value={editingProduct.name}
-                            />
-                            <input
-                              onChange={(event) =>
-                                updateEditingProductField('description', event.target.value)
-                              }
-                              placeholder="Descripcion"
-                              value={editingProduct.description}
-                            />
-                            <input type="url" aria-label={`URL de imagen de ${product.name}`} placeholder="URL de imagen" onChange={(event) => updateEditingProductField('imageUrl', event.target.value)} value={editingProduct.imageUrl} />
-                          </>
-                        ) : (
-                          <>
-                            <strong>{product.name}</strong>
-                            {product.description && <span>{product.description}</span>}
-                          </>
-                        )}
-                      </div>
-
-                      <div>
-                        {editingProductId === product.id ? (
-                          <select
-                            onChange={(event) =>
-                              updateEditingProductField('categoryId', event.target.value)
-                            }
-                            value={editingProduct.categoryId}
-                          >
-                            {categories.map((category) => (
-                              <option key={category.id} value={category.id}>
-                                {category.name}
-                              </option>
-                            ))}
-                          </select>
-                        ) : (
-                          <span>{product.category.name}</span>
-                        )}
-                      </div>
-
-                      <div>
-                        {editingProductId === product.id ? (
-                          <input
-                            inputMode="decimal"
-                            onChange={(event) => updateEditingProductField('price', event.target.value)}
-                            type="number"
-                            min="0.01" step="0.01"
-                            value={editingProduct.price}
-                          />
-                        ) : (
-                          <strong>{formatPrice(product.price)}</strong>
-                        )}
-                      </div>
-
-                      <span
-                        className={product.active ? 'status-badge status-ready' : 'status-badge status-cancelled'}
-                      >
-                        {product.active ? 'Activo' : 'Inactivo'}
-                      </span>
-
-                      <div className="row-actions">
-                        {editingProductId === product.id ? (
-                          <>
-                            <button
-                              disabled={productsLoading}
-                              onClick={() => void updateProduct(product.id)}
-                              type="button"
-                            >
-                              Guardar
-                            </button>
-                            <button className="secondary" onClick={cancelEditingProduct} type="button">
-                              Cancelar
-                            </button>
-                          </>
-                        ) : (
-                          <>
-                            <button
-                              className="secondary"
-                              onClick={() => startEditingProduct(product)}
-                              type="button"
-                            >
-                              Editar
-                            </button>
-                            {product.active ? (
-                              <button
-                                className="danger"
-                                disabled={productsLoading}
-                                onClick={() => void deactivateProduct(product.id)}
-                                type="button"
-                              >
-                                Desactivar
-                              </button>
-                            ) : (
-                              <button
-                                disabled={productsLoading}
-                                onClick={() => void activateProduct(product.id)}
-                                type="button"
-                              >
-                                Activar
-                              </button>
-                            )}
-                          </>
-                        )}
-                      </div>
+                      <div className="product-name-cell"><strong>{product.name}</strong>{product.description && <span>{product.description}</span>}</div>
+                      <span>{product.category.name}</span><strong>{formatPrice(product.price)}</strong>
+                      <span className={product.active ? 'status-badge status-ready' : 'status-badge status-cancelled'}>{product.active ? 'Activo' : 'Inactivo'}</span>
+                      <div className="row-actions"><button className="secondary" onClick={() => startEditingProduct(product)} type="button">Editar</button>{product.active ? <button className="danger" disabled={productsLoading} onClick={() => void deactivateProduct(product.id)} type="button">Desactivar</button> : <button disabled={productsLoading} onClick={() => void activateProduct(product.id)} type="button">Activar</button>}</div>
                     </article>
                   ))
                 )}
               </section>
+              {editingProductId && <dialog className="order-detail-dialog product-edit-dialog" ref={productDialogRef} aria-labelledby="product-edit-title" onCancel={cancelEditingProduct}>
+                <div className="order-detail-heading"><div><p>Catalogo</p><h2 id="product-edit-title">Editar producto</h2></div><button className="secondary" type="button" onClick={cancelEditingProduct} aria-label="Cerrar edicion">X</button></div>
+                <form onSubmit={(event) => { event.preventDefault(); void updateProduct(editingProductId) }}>
+                  <label>Nombre<input required maxLength={50} value={editingProduct.name} onChange={event => updateEditingProductField('name', event.target.value)} /></label>
+                  <label>Descripcion<textarea maxLength={500} value={editingProduct.description} onChange={event => updateEditingProductField('description', event.target.value)} /></label>
+                  <label>URL de imagen<input type="url" value={editingProduct.imageUrl} onChange={event => updateEditingProductField('imageUrl', event.target.value)} /></label>
+                  <label>Ingredientes<textarea maxLength={1000} value={editingProduct.ingredients} onChange={event => updateEditingProductField('ingredients', event.target.value)} /></label>
+                  <label>Alergenos y posibles trazas<textarea maxLength={1000} value={editingProduct.allergens} onChange={event => updateEditingProductField('allergens', event.target.value)} /></label>
+                  <label>Precio<input type="number" min="0.01" step="0.01" required value={editingProduct.price} onChange={event => updateEditingProductField('price', event.target.value)} /></label>
+                  <label>Categoria<select value={editingProduct.categoryId} required onChange={event => updateEditingProductField('categoryId', event.target.value)}>{categories.map(category => <option key={category.id} value={category.id}>{category.name}</option>)}</select></label>
+                  {productsMessage && <p className="form-message" role="alert">{productsMessage}</p>}
+                  <div className="product-dialog-actions"><button type="submit" disabled={productsLoading}>{productsLoading ? 'Guardando...' : 'Guardar cambios'}</button><button className="secondary" type="button" onClick={cancelEditingProduct}>Cancelar</button></div>
+                </form>
+              </dialog>}
             </div>
           )}
         </section>

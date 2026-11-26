@@ -26,6 +26,8 @@ model Product {
   name        String
   description String?
   imageUrl    String?
+  ingredients String?
+  allergens   String?
   price       Decimal @db.Decimal(10, 2)
   active      Boolean @default(true)
 
@@ -96,4 +98,10 @@ enum OrderStatus {
 enum OrderType {
   DELIVERY
   PICKUP
+}
+
+model BusinessSettings {
+  id        String   @id
+  data      Json
+  updatedAt DateTime @updatedAt
 }

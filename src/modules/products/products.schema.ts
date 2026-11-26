@@ -14,6 +14,9 @@ const productBodySchema = z.object({
         .max(500, "La descripcion no puede superar los 500 caracteres")
         .optional(),
 
+    ingredients: z.string().trim().max(1000).nullable().optional(),
+    allergens: z.string().trim().max(1000).nullable().optional(),
+
     imageUrl: z.url({ protocol: /^https?$/ }).max(2048).nullable().optional(),
 
     price: z
