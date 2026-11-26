@@ -289,7 +289,6 @@ export function PublicMenuPage() {
 
       </header>}
 
-      <a className="regret-entry" href="/arrepentimiento">Boton de arrepentimiento</a>
       {message && activeView !== 'cart' && <p className="form-message" role="alert">{message}</p>}
       {cartNotice && activeView === 'menu' && <p className="cart-notice" role="status">{cartNotice}</p>}
 
