@@ -1,4 +1,4 @@
-﻿ALTER TABLE "Product" ADD COLUMN "ingredients" TEXT, ADD COLUMN "allergens" TEXT;
+ALTER TABLE "Product" ADD COLUMN "ingredients" TEXT, ADD COLUMN "allergens" TEXT;
 CREATE TABLE "BusinessSettings" (
   "id" TEXT NOT NULL,
   "data" JSONB NOT NULL,
